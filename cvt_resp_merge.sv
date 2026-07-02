@@ -1,8 +1,5 @@
 // =============================================================================
 // Module      : cvt_resp_merge
-// Description : UIF-64 response path converter back to UIF-128.
-//               B responses are passed through. R data is merged by ID so
-//               interleaved read responses from different IDs can be accepted.
 // =============================================================================
 
 `timescale 1ns/1ps
@@ -10,26 +7,23 @@
 module cvt_resp_merge #(
   parameter int ID_WIDTH     = 8,
   parameter int USER_WIDTH   = 16,
-  parameter int BUFFER_DEPTH = 16,
+  parameter int BUFFER_DEPTH = 16,  //支持最高outstanding为16
   parameter int OUT_DEPTH    = 16
 ) (
   input  logic                  clk,
   input  logic                  resetn,
-
   // UIF-128 write response to upstream.
   output logic                  ub_valid_o,
   input  logic                  ub_ready_o,
   output logic [ID_WIDTH-1:0]   ubid_o,
   output logic [USER_WIDTH-1:0] ubuser_o,
   output logic [1:0]            ubresp_o,
-
   // UIF-64 write response from downstream.
   input  logic                  ub_valid_i,
   output logic                  ub_ready_i,
   input  logic [ID_WIDTH-1:0]   ubid_i,
   input  logic [USER_WIDTH-1:0] ubuser_i,
   input  logic [1:0]            ubresp_i,
-
   // UIF-128 read data to upstream.
   output logic                  ur_valid_o,
   input  logic                  ur_ready_o,
@@ -38,7 +32,6 @@ module cvt_resp_merge #(
   output logic [127:0]          urdata_o,
   output logic [USER_WIDTH-1:0] uruser_o,
   output logic [1:0]            urresp_o,
-
   // UIF-64 read data from downstream.
   input  logic                  ur_valid_i,
   output logic                  ur_ready_i,
@@ -48,22 +41,23 @@ module cvt_resp_merge #(
   input  logic [USER_WIDTH-1:0] uruser_i,
   input  logic [1:0]            urresp_i
 );
-
+  //fifo width，restore merged rdata/id/rresp，upstream ur_ready_o反压fifo pop.
   localparam int OUT_W = ID_WIDTH + 128 + USER_WIDTH + 2 + 1;
-  localparam int IDX_W = (BUFFER_DEPTH <= 1) ? 1 : $clog2(BUFFER_DEPTH);
+  localparam int IDX_W = (BUFFER_DEPTH <= 1) ? 1 : $clog2(BUFFER_DEPTH);//存储buffer index位宽4.
 
-  logic [BUFFER_DEPTH-1:0]      partial_valid_q;
-  logic [ID_WIDTH-1:0]          partial_id_q   [BUFFER_DEPTH];
-  logic [63:0]                  partial_data_q [BUFFER_DEPTH];
-  logic [USER_WIDTH-1:0]        partial_user_q [BUFFER_DEPTH];
-  logic [1:0]                   partial_resp_q [BUFFER_DEPTH];
+  logic [BUFFER_DEPTH-1:0]      buffer_valid_q;
+  logic [ID_WIDTH-1:0]          buffer_id_q   [BUFFER_DEPTH];
+  logic [63:0]                  buffer_data_q [BUFFER_DEPTH];   //buffer只暂存完整128数据的低64bit，高64bit（id判断）到来后立即拼接并申请写入fifo
+  logic [USER_WIDTH-1:0]        buffer_user_q [BUFFER_DEPTH];
+  logic [1:0]                   buffer_resp_q [BUFFER_DEPTH];
 
-  logic [BUFFER_DEPTH-1:0]      match_vec;
+  //buffer状态指示信号
+  logic [BUFFER_DEPTH-1:0]      match_vec;  //16-bit vector，buffers
   logic [BUFFER_DEPTH-1:0]      free_vec;
   logic                         match_found;
   logic                         free_found;
-  logic [IDX_W-1:0]               match_idx;
-  logic [IDX_W-1:0]               free_idx;
+  logic [IDX_W-1:0]             match_idx;
+  logic [IDX_W-1:0]             free_idx;
 
   logic [OUT_W-1:0]             out_fifo_din;
   logic [OUT_W-1:0]             out_fifo_dout;
@@ -72,19 +66,18 @@ module cvt_resp_merge #(
   logic                         out_fifo_push;
   logic                         out_fifo_pop;
   logic [1:0]                   merged_resp;
-  logic                         take_r;
+  logic                         handshake_r_i;
 
   // B channel is width independent. pure ready-valid pass-through
-  //写响应通道不不携带数据信息，直接透传.无写响应延迟，增加带宽。
   assign ub_valid_o = ub_valid_i;
   assign ub_ready_i = ub_ready_o;
   assign ubid_o     = ubid_i;
   assign ubuser_o   = ubuser_i;
   assign ubresp_o   = ubresp_i;
 
-  // The first 64-bit read beat of a 128-bit pair is stored in the partial table.
-  // When a later beat with the same ID arrives, the two halves are merged. This
-  // allows read data for different IDs to be interleaved by the downstream side.
+  // first/low 64bit read data/id/user/resp stored in look-up table buffer.
+  // when the same ID arrives,merge and push fifo.
+  // allow read data interleaving
   always_comb begin
     match_vec   = '0;
     free_vec    = '0;
@@ -92,10 +85,10 @@ module cvt_resp_merge #(
     free_found  = 1'b0;
     match_idx   = '0;
     free_idx    = '0;
-
+   //one-hot
     for (int i = 0; i < BUFFER_DEPTH; i++) begin
-      match_vec[i] = partial_valid_q[i] && (partial_id_q[i] == urid_i);
-      free_vec[i]  = !partial_valid_q[i];
+      match_vec[i] = buffer_valid_q[i] && (buffer_id_q[i] == urid_i);  //one-hot
+      free_vec[i]  = !buffer_valid_q[i];       //buffer_valid_q : this table index restore valid low 64-bit id/data/user/resp
     end
 
     for (int i = 0; i < BUFFER_DEPTH; i++) begin
@@ -110,20 +103,19 @@ module cvt_resp_merge #(
     end
   end
 
-  // A new ID needs a free partial table entry. A matching ID needs output FIFO
-  // space because it will complete a 128-bit read beat immediately.
+  // A new ID needs a free table buffer. A matched ID output FIFO then complete a 128-bit read beat.
   assign ur_ready_i = match_found ? !out_fifo_full : free_found;
-  assign take_r     = ur_valid_i && ur_ready_i;
-  // Per spec, if either 64-bit response has an error, return the first error
-  // observed in the pair. OKAY is encoded as 2'b00.
-  assign merged_resp = (partial_resp_q[match_idx] != 2'b00) ? partial_resp_q[match_idx] : urresp_i;
-  assign out_fifo_push = take_r && match_found;
-  // The earlier 64-bit beat becomes bits [63:0]; the later beat becomes
-  // bits [127:64]. User follows the first returned beat as required by spec.
+  assign handshake_r_i     = ur_valid_i && ur_ready_i;
+
+  // Spec:FS004.003: if either 64-bit response has an error, return the first error.
+  //  OKAY: 2'b00.   SLVERR: 2'b10.  DECERR:2'b11.    no EXOKEY 
+  assign merged_resp = (buffer_resp_q[match_idx] != 2'b00) ? buffer_resp_q[match_idx] : urresp_i;
+  assign out_fifo_push = handshake_r_i && match_found;
+  
   assign out_fifo_din  = {
     urid_i,
-    {urdata_i, partial_data_q[match_idx]},
-    partial_user_q[match_idx],
+    {urdata_i, buffer_data_q[match_idx]},
+    buffer_user_q[match_idx],
     merged_resp,
     urlast_i
   };
@@ -158,27 +150,25 @@ module cvt_resp_merge #(
 
   always_ff @(posedge clk or negedge resetn) begin
     if (!resetn) begin
-      partial_valid_q <= '0;
+      buffer_valid_q <= '0;
       for (int i = 0; i < BUFFER_DEPTH; i++) begin
-        partial_id_q[i]   <= '0;
-        partial_data_q[i] <= '0;
-        partial_user_q[i] <= '0;
-        partial_resp_q[i] <= '0;
+        buffer_id_q[i]   <= '0;
+        buffer_data_q[i] <= '0;
+        buffer_user_q[i] <= '0;
+        buffer_resp_q[i] <= '0;
       end
-    end else if (take_r) begin
+    end else if (handshake_r_i) begin  //dowmstream ur_valid_i && ur_ready_i;
       if (match_found) begin
-        // Second half received: the completed 128-bit beat has been pushed to
-        // the output FIFO, so this partial entry can be reused.
-        partial_valid_q[match_idx] <= 1'b0;
-      end else begin
-        // First half for this ID: keep it until the matching second half
-        // arrives. Spec disallows duplicate outstanding same-ID read commands,
-        // so one partial entry per active ID is sufficient.
-        partial_valid_q[free_idx] <= 1'b1;
-        partial_id_q[free_idx]    <= urid_i;
-        partial_data_q[free_idx]  <= urdata_i;
-        partial_user_q[free_idx]  <= uruser_i;
-        partial_resp_q[free_idx]  <= urresp_i;
+        buffer_valid_q[match_idx] <= 1'b0;
+      end 
+      else begin
+        // First half for this read ID: keep it until the matching second half arrives. 
+        // free_idx : the next low-64 bit will restore in last released table buffer[i]
+        buffer_valid_q[free_idx] <= 1'b1;
+        buffer_id_q[free_idx]    <= urid_i;
+        buffer_data_q[free_idx]  <= urdata_i;
+        buffer_user_q[free_idx]  <= uruser_i;
+        buffer_resp_q[free_idx]  <= urresp_i;
       end
     end
   end
