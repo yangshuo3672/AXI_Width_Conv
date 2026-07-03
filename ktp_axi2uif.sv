@@ -284,7 +284,7 @@ always_ff@(posedge aclk or negedge aresetn)begin
      first_write_beat <= 1'b0;
    end
    else begin
-     first_write_beat < first_write_beat;
+     first_write_beat <= first_write_beat;
    end
 end
 
