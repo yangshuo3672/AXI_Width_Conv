@@ -147,9 +147,12 @@ module ktp_top (
   localparam int USER_WIDTH = 16;
 
   wire ckg_bypass;
-  wire clk_en_unused;
-  wire unused_pprot = ^pprot;
+  wire clk_en;
+  //wire unused_pprot = ^pprot;
+  wire ckg_bypass; 
 
+  //assign  
+    
   wire u128_aww_valid, u128_aww_ready;
   wire [7:0] u128_awid;
   wire [31:0] u128_awaddr;
