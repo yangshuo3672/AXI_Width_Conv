@@ -169,6 +169,7 @@ module ktp_axi2uif #(
   logic [AW_W-1:0] active_aw;
   logic            in_write_burst;
   logic            first_write_beat;
+  
   // Combinational packing
   assign aw_fifo_din = { awid_s, awaddr_s, awlen_s, awsize_s, awburst_s, awlock_s, awcache_s,awprot_s, awuser_s, awqos_s, awregion_s, awdomain_s, awsnoop_s, awbar_s   };
   assign w_fifo_din  = { wdata_s, wstrb_s, wuser_s, wlast_s  };
@@ -226,7 +227,28 @@ module ktp_axi2uif #(
     .empty  (ar_fifo_empty),
     .level  ()
   );
-  //
+  
+  assign  uaww_valid  = first_write_beat ? ( !aw_fifo_empty && !w_fifo_empty ) : ( !w_fifo_empty );
+  assign  aw_fifo_pop = uif_write_fire && first_write_beat;
+  assign  w_fifo_pop  = uif_write_fire;
+
+  assign  uif_write_fire = uaww_valid && uaww_ready;
+
+  always_ff@(posedge aclk or negedge aresetn)begin
+   if(!aresetn)begin
+     first_write_beat <= 1'b1;                        //default is first write beat
+   end
+    else if( uwlast && uif_write_fire )begin
+     first_write_beat <= 1'b1;
+   end
+    else if(first_write_beat && uif_write_fire)begin       //first beat and pop aw fifo，then first_write_beat=0
+     first_write_beat <= 1'b0;
+   end
+   else begin
+     first_write_beat <= first_write_beat;
+   end
+end
+  
   wire write_can_move   = first_write_beat ? 
                           (!aw_fifo_empty && !w_fifo_empty) : ( !w_fifo_empty );   //若为第一beat，需要aw/w fifo需都非空；若不是第一beat，仅w fifo非空可取数据即可.
   wire write_fire       = uaww_valid && uaww_ready;  //uif写请求与下游握手，记为一笔uif写事件.
@@ -235,86 +257,34 @@ module ktp_axi2uif #(
   assign uaww_valid = write_can_move;  //aw和w fifo内数据状态满足move条件，发起uif写请求.
   assign aw_fifo_pop = write_fire && first_write_beat;  //uif发起写请求且当前为first beat，pop aw fifo数据。
   assign w_fifo_pop  = write_fire ;                     //每个burst AW pop一次，W pop awlen次。
-  // UIF write output rule:
-  // - First beat can be sent only when both AW and W FIFO contain an entry.
-  // - Middle beats only need W data because the AW context is already active.
-
-  // Sequential burst context:
-  // Capture AW on the first successful UIF write beat, then hold it stable for
-  // all following beats of the same burst. Clear the burst state when WLAST is
-  // accepted by the downstream UIF stage.
- /*
-  always_ff @(posedge aclk or negedge aresetn) begin
-    if (!aresetn) begin
-      first_write_beat <= 1'b1;     //复位状态下默认第一beat
-    end else if (write_fire) begin
-      if (first_write_beat) begin
-        //active_aw <= aw_fifo_dout;
-      end
-       if (current_wlast) begin
-        first_write_beat <= 1'b1;
-      end else begin
-        first_write_beat <= 1'b0;
-      end
-    end
-  end
-
-*/
-//检测wlast下降沿，当wlast拉高后，不能立即判断first_write_beat=1；因为可能最后一拍wdata和对应的wlast到来后，后级反压没有相应，导致不能立即开始下一个burst事务。
-logic current_wlast_d1;
-
-always_ff@(posedge aclk or negedge aresetn)begin
-   if(!aresetn)begin
-     current_wlast_d1 <= 1'b0;
-   end
-   else begin
-    current_wlast_d1 <= current_wlast;
-   end
-end
-
-//如果遇到下游uawwready延迟多个周期响应，first_write_beat会在wlast_s拉高的下一个周期就拉高，导致uaww_valid错误判断，可能过早拉低。因此first_write_beat要去判断wlast的下降沿。
-always_ff@(posedge aclk or negedge aresetn)begin
-   if(!aresetn)begin
-     first_write_beat <= 1'b0;
-   end
-   else if( ~current_wlast && current_wlast_d1 )begin
-     first_write_beat <= 1'b1;
-   end
-   else if(first_write_beat && write_fire)begin   //first beat and pop aw fifo，then first_write_beat=0
-     first_write_beat <= 1'b0;
-   end
-   else begin
-     first_write_beat <= first_write_beat;
-   end
-end
+ 
 
 //register aw 
-always_ff@(posedge aclk or negedge aresetn)begin
-   if(!aresetn)begin
-      active_aw <= '0;
-   end
-   else if(first_write_beat)begin
-     active_aw <= aw_fifo_dout;
-   end
-   else begin
-     active_aw <= active_aw; 
-   end
-end
+  always_ff@(posedge aclk or negedge aresetn)begin
+     if(!aresetn)begin
+        active_aw <= 'd0;
+     end
+     else if(first_write_beat)begin
+       active_aw <= aw_fifo_dout;
+     end
+     else begin
+       active_aw <= active_aw; 
+     end
+  end
   // During the first beat, drive AW directly from the FIFO head. During later beats, drive the registered context captured above.
   wire [AW_W-1:0] selected_aw = first_write_beat ? aw_fifo_dout : active_aw;
 
-  // Combinational unpacking to the UIF write channel. 
+  // combinational unpacking to the UIF write channel. 
   assign {uawid, uawaddr, uawlen, uawsize, uawburst, uawlock, uawcache, uawprot,uawuser, uawqos, uawregion, uawdomain, uawsnoop, uawbar} = selected_aw;
   assign {uwdata, uwstrb, uwuser, uwlast} = w_fifo_dout;
 
-  // AR channel is an ordinary valid-ready FIFO path; it is independent of the
-  assign uar_valid  = !ar_fifo_empty;
-  assign ar_fifo_pop = uar_valid && uar_ready;
 
+  // AR channel
+  assign uar_valid   = !ar_fifo_empty;
+  assign ar_fifo_pop = uar_valid && uar_ready;
   assign { uarid, uaraddr, uarlen, uarsize, uarburst, uarlock, uarcache, uarprot,uaruser, uarqos, uarregion, uardomain, uarsnoop, uarbar} = ar_fifo_dout;
 
-  // B and R return channels already match UIF timing semantics, so they are
-  // pure combinational valid-ready pass-throughs in this clock domain.
+  // B/R resp channel return bypass
   assign bvalid_s = ub_valid;
   assign ub_ready = bready_s;
   assign bid_s    = ubid;
