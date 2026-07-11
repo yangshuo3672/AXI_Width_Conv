@@ -304,7 +304,8 @@ module ktp_top (
     .DATA_WIDTH(128),
     .STRB_WIDTH(16),
     .USER_WIDTH(USER_WIDTH),
-    .FIFO_DEPTH(16),
+    .AW_FIFO_DEPTH(16),
+    .W_FIFO_DEPTH(16),
     .AR_FIFO_DEPTH(16)
   ) u_axi2uif (
     .aclk(aclk_s),
