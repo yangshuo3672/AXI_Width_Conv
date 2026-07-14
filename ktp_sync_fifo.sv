@@ -27,7 +27,7 @@ module ktp_sync_fifo #(
   localparam int CNT_W  = $clog2(DEPTH + 1);
 
  
-  logic [WIDTH-1:0] mem [0：DEPTH-1];
+  logic [WIDTH-1:0] mem [0:DEPTH-1];
   logic [ADDR_W-1:0] wr_ptr;
   logic [ADDR_W-1:0] rd_ptr;
   logic [CNT_W-1:0]  count;
