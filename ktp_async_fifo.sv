@@ -66,18 +66,18 @@ module ktp_async_fifo #(
       wbin_curr         <= 'd0;
       wgray_curr        <= 'd0;
       rgray_wsync1_curr <= 'd0;
-      rgray_wsync2_curr <= 'd0;
+      rgray_wsync2_curr <= 'd0;/*
       for(int i=0;i<DEPTH;i++)begin
         mem[i] <= 'd0;
-      end
+      end                     */  //decrease the area
     end else begin
       rgray_wsync1_curr <= rgray_curr;
       rgray_wsync2_curr <= rgray_wsync1_curr;
-      
+     /* 
       if (wpush_en) begin
         mem[wbin_curr[ADDR_W-1:0]] <= wdata;
       end
-
+     */
       wbin_curr  <= wbin_nxt;
       wgray_curr <= wgray_nxt;
     end
@@ -98,5 +98,11 @@ module ktp_async_fifo #(
     end
   end
 
+  always_ff @(posedge rclk ) begin
+    if (wpush_en) begin
+        mem[wbin_curr[ADDR_W-1:0]] <= wdata;
+    end
+  end
+  
 
 endmodule
