@@ -98,7 +98,7 @@ module ktp_async_fifo #(
     end
   end
 
-  always_ff @(posedge rclk ) begin
+  always_ff @(posedge wclk ) begin
     if (wpush_en) begin
         mem[wbin_curr[ADDR_W-1:0]] <= wdata;
     end
