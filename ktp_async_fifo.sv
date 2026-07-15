@@ -51,7 +51,7 @@ module ktp_async_fifo #(
   endfunction
 
   assign wpush_en = winc && !wfull;
-  assign rpop_en  = rinc && !empty;
+  assign rpop_en  = rinc && !rempty;
   assign wbin_nxt  = wbin_curr + {{(PTR_W-1){1'b0}}, wpush_en};
   assign rbin_nxt  = rbin_curr + {{(PTR_W-1){1'b0}}, rpop_en};
   assign wgray_nxt = bin2gray(wbin_nxt);
