@@ -49,13 +49,13 @@ module ktp_sync_fifo #(
     if (!resetn) begin
       wr_ptr <= 'd0;
       rd_ptr <= 'd0;
-      count  <= 'd0;
+      count  <= 'd0;   /*
       for(int i=0;i<DEPTH;i++)begin
         mem[i] <= '0;
-      end
+      end             */  //decrease the area
     end else begin
       if (push_en) begin
-        mem[wr_ptr] <= din;
+        //mem[wr_ptr] <= din;
         wr_ptr <= (wr_ptr == DEPTH-1) ? 'd0 : wr_ptr + 1'b1;
       end
 
@@ -71,5 +71,10 @@ module ktp_sync_fifo #(
     end
   end
 
+  always_ff@(posedge clk)begin
+    if(push_en)begin
+      mem[wr_ptr] <= din;
+    end
+  end
 
 endmodule
