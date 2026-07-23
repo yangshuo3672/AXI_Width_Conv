@@ -2,24 +2,40 @@
 #define AXI2AXI_RM__SV
 #define FULL_ADDR 64'hffff_ffff_ffff_ffff
 
+//Reference Model:Complete handing data from monitor port,and then send to checker
+
 //***********************************************************class axi2axi_rm*****************************************//
 class axi2axi_rm extends stb_function_component #(2, 2);
 
+// Define the member variables base on project requirement
+//Coding begin
+//%%%%%%%%%%%%%%%%%%%%%%%%
+//Coding end
+// rand int pkt_len; // Define the packet length
 `uvm_component_utils begin(axi2axi_rm)
+// Add variables into field-automation base on project requirement
+//Coding begin
+//%%%%%%%%%%%%%%%%%%%%%
+//Coding end
 `uvm_component_utils_end
 
 extern function new(string	name,
                     uvm component	parent
                    );
 
-extern virtual function void build_phase(uvm_phase phase);
+extern virtual function void build_phase(uvm_phase phase); //Calls super.build_phase(phase) to enable automatic get config and create object
+extern virtual task run_phase(uvm_phase phase);//Components implement behavior that is exhibited for the entire run-time,across the various run-time phases 
 
-extern virtual task run_phase(uvm_phase phase);
-
+//axi_xaction processing threas
 extern virtual task axi_xaction_0_process();
 extern virtual task axi_xaction_1 process();
 
 extern function strb_change(input [127:0] wstrb, input [31:0] size, output [127:0] strb);
+  
+//Define the function or task base on project requirement
+//Coding begin
+//%%%%%%%%%%%%%%%%%%%%%  
+//Coding end
 
 endclass: axi2axi_rm
 //**********************************************************************************************************************//
@@ -83,6 +99,9 @@ task axi2axi_rm::axi_xaction_0_process();
       end
       
       //Add process to handle rm input transaction(from monitor to rm). base on project requirement	
+      //Coding begin
+      //%%%%%%%%%%%%%%%%%%
+      //....................
       `uvm_info(get_type_name(), $sformatf("this is an AXI TRANSACTION from master"), UVM HIGH);	
       `uvm_info(get_type_name(), $sformatf("print transaction from master at rm \n%s", axi_xaction_in.sprint()), UVM DEBUG);	
       
@@ -123,11 +142,12 @@ task axi2axi_rm::axi_xaction_0_process();
                 end
           endcase
        end  //else if
-
+      
+      //Coding end
       `uvm_info(get_type_name(), $sformatf("send the rm transaction from AXI MASTER to CHECKER\n"), UVM HIGH);
       #20ns;
       this.out_port[0].put(rm_out_tr);	 // Put rm handled transaction to port
-
+      //Coding end
     end //while (1)
 join_none
   
@@ -171,6 +191,9 @@ task axi2axi_rm::axi_xaction_1_process();
       end
       
       //Add process to handle rm input transaction(from monitor to rm). base on project requirement	
+      //Coding begin
+      //%%%%%%%%%%%%%%%%%%%%%
+      //.....................
       `uvm_info(get_type_name(), $sformatf("this is an AXI TRANSACTION from slave"), UVM HIGH);	
       `uvm_info(get_type_name(), $sformatf("print transaction from slave at rm \n%s", axi_xaction_in.sprint()), UVM DEBUG);	
       
@@ -211,11 +234,11 @@ task axi2axi_rm::axi_xaction_1_process();
                 end
           endcase
        end  //else if
-
+      //Coding end
       `uvm_info(get_type_name(), $sformatf("send the rm transaction from AXI MASTER to CHECKER\n"), UVM HIGH);
       //#20ns;
       this.out_port[0].put(rm_out_tr);	 // Put rm handled transaction to port
-
+      //Coding end
     end //while (1)
 join_none
   
