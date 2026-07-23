@@ -175,6 +175,9 @@ module ktp_uif2axi #(
     end
   end
 
+
+
+//******************************************AR/B/R Channel Bypass**************************************//
   assign uar_ready  = arready_m;
   assign arvalid_m  = uar_valid;
   assign arid_m     = uarid;
