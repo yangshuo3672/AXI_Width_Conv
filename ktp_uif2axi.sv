@@ -134,48 +134,83 @@ module ktp_uif2axi #(
   input  logic [1:0]              bresp_m
 );
 
-  logic in_write_burst_q;
-  logic write_first_beat;
-  logic write_fire;
 
-  assign write_first_beat = !in_write_burst_q;
+  localparam int AW_W = ID_WIDTH + ADDR_WIDTH + 4 + 3 + 2 + 1 + 4 + 3
+                      + USER_WIDTH + 4 + 4 + 2 + 3 + 2;                 
+  localparam int W_W  = DATA_WIDTH + STRB_WIDTH + USER_WIDTH + 1;   
 
-  // Accept the first UIF write beat only when both AXI AW and AXI W can move.
-  // Middle beats only depend on AXI W ready.
-  assign uaww_ready = write_first_beat ? (awready_m && wready_m) : wready_m;
-  assign write_fire = uaww_valid && uaww_ready;
-
-  assign awvalid_m = uaww_valid && write_first_beat && wready_m;
-  assign awid_m     = uawid;
-  assign awaddr_m   = uawaddr;
-  assign awlen_m    = uawlen;
-  assign awsize_m   = uawsize;
-  assign awburst_m  = uawburst;
-  assign awlock_m   = uawlock;
-  assign awcache_m  = uawcache;
-  assign awprot_m   = uawprot;
-  assign awuser_m   = uawuser;
-  assign awqos_m    = uawqos;
-  assign awregion_m = uawregion;
-  assign awdomain_m = uawdomain;
-  assign awsnoop_m  = uawsnoop;
-  assign awbar_m    = uawbar;
-
-  assign wvalid_m = uaww_valid && (write_first_beat ? awready_m : 1'b1);
-  assign wdata_m  = uwdata;
-  assign wstrb_m  = uwstrb;
-  assign wuser_m  = uwuser;
-  assign wlast_m  = uwlast;
-
-  always_ff @(posedge aclk or negedge aresetn) begin
+  logic uif_first_write_beat;
+  logic uif_write_fire;
+  logic aw_skid_ready_o;
+  logic w_skid_ready_o;
+  
+always_ff @(posedge aclk or negedge aresetn) begin
     if (!aresetn) begin
-      in_write_burst_q <= 1'b0;
-    end else if (write_fire) begin
-      in_write_burst_q <= !uwlast;
+        uif_first_write_beat <= 1'b1;
     end
-  end
+    else if (uwlast && uif_write_fire) begin
+        uif_first_write_beat <= 1'b1;
+    end
+    else if(uif_first_write_beat && uif_write_fire)begin
+        uif_first_write_beat <= 1'b0;
+    end
+    else begin
+        uif_first_write_beat <= uif_first_write_beat;
+    end
+end
+  
+assign uaww_ready = uif_first_write_beat ? (aw_skid_ready_o && w_skid_ready_o) : w_skid_ready_o; //(!aw_fifo_full && !w_fifo_full) : (!w_fifo_full);
+assign uif_write_fire = uaww_valid && uaww_ready;
 
+logic [AW_W-1:0] aw_skid_din;
+logic [AW_W-1:0] aw_skid_dout;
+logic [W_W-1:0]  w_skid_din;
+logic [W_W-1:0]  w_skid_dout;
 
+assign { awid_m, awaddr_m, awlen_m, awsize_m, awburst_m, awlock_m, awcache_m,awprot_m,awuser_m, awqos_m, awregion_m, awdomain_m, awsnoop_m, awbar_m } = aw_skid_dout;
+assign { wdata_m, wstrb_m, wuser_m, wlast_m } = w_skid_dout;
+
+assign aw_skid_din = { uwid, uawaddr, uawlen, uawsize, uawburst, uawlock, uawcache,uawprot, uawuser, uawqos, uawregion, uawdomain, uawsnoop, uawbar };
+assign w_skid_din = { uwdata, uwstrb, uwuser, uwlast };
+
+assign awsize_m = 3'd3;
+assign awburst_m = 2'd1;
+assign awlock_m = 1'd0;
+assign wstrb_m = 8'hff;
+
+//out skid buffer
+wire aw_skid_valid_i = uif_first_write_beat && uif_write_fire;
+wire w_skid_valid_i = uaww_valid && uif_write_fire;
+
+ktp_skid_buffer #(
+    .WIDTH(AW_W)
+)u_aw_skid_buffer(
+    .clk        (aclk),
+    .resetn     (aresetn),
+    //skid upstream
+    .valid_i    (aw_skid_valid_i ),
+    .ready_o    (aw_skid_ready_o),
+    .data_i     (aw_skid_din),
+    //skid downstream
+    .valid_o    (awvalid_m),
+    .ready_i    (awready_m),
+    .data_o     (aw_skid_dout)
+);
+
+ktp_skid_buffer #(
+    .WIDTH(W_W)
+)u_w_skid_buffer(
+    .clk        (aclk),
+    .resetn     (aresetn),
+    //skid upstream
+    .valid_i    (w_skid_valid_i ),
+    .ready_o    (w_skid_ready_o),
+    .data_i     (w_skid_din),
+    //skid downstream
+    .valid_o    (wvalid_m),
+    .ready_i    (wready_m),
+    .data_o     (w_skid_dout)
+);
 
 //******************************************AR/B/R Channel Bypass**************************************//
   assign uar_ready  = arready_m;
