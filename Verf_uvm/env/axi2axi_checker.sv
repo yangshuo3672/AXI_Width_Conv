@@ -18,7 +18,18 @@ class axi2axi_checker extends stb_function_component #(2, 0);
    bit [31:0]    sw_resp_q[$];
    bit [31:0]    sr_resp_q[$];
 
+   //Define the member variables base on project requirement
+   //Coding begin
+   //%%%%%%%%%%%%%%%%%%%%
+   //Coding end
+   
   `uvm_component_utils_begin(axi2axi_checker)
+
+   //Add variables into fiels-automation base on project requirement
+   //Coding begin
+   //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   //Coding end
+   
   `uvm_component_utils_end
 
   extern function new(string name,
@@ -27,11 +38,14 @@ class axi2axi_checker extends stb_function_component #(2, 0);
   extern virtual function void build_phase(uvm_phase phase);
   extern virtual function void connect_phase(uvm_phase phase);
 
+  //Define the functions or task base on project requirement
+  //Coding begin
+  //%%%%%%%%%%%%%%%%%%%%%%
   extern virtual task run_phase(uvm_phase phase);
   extern virtual task check_data();
-    
   extern virtual function void check_phase(uvm_phase phase);
-
+  //Coding end
+     
 endclass:axi2axi_checker
 
 function axi2axi_checker::new(string name,
@@ -79,8 +93,12 @@ endtask: run_phase
 function void axi2axi_checker::check_phase(uvm_phase phase);
   
       super.check_phase(phase);
+      //Extend check_phase() based on project requirement
+      //Coding begin
+      //%%%%%%%%%%%%%%%%%%%%
      `uvm_info(get_type_name(),"check_phase(): check_phase() start",UVM_HIGH);
-  
+
+     //end sim check
      if (sw_data_q.size != 0) begin
          `uvm_error(get_type_name(), $sformatf("there still %0d numbers of write datas in the slave queue", sw_data_q.size));
      end
@@ -93,7 +111,8 @@ function void axi2axi_checker::check_phase(uvm_phase phase);
      if (sr_addr_q.size != 0) begin
          `uvm_error(get_type_name(), $sformatf("there still %0d numbers of read addresses in the slave queue", sr_addr_q.size));
      end
-
+     //Coding end
+   
   `uvm_info(get_type_name(),"check_phase(): check_phase() finished",UVM_HIGH);
 
 endfunction:check_phase
