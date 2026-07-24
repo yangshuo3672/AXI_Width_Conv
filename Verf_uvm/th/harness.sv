@@ -144,8 +144,9 @@ module harness;
        // STB_HARNESS_SET_INTERFACE_END
        //打印时间格式：ns，3位小数
        $timeformat(-9,3,"ns",12);
-       //启动UVM
+       //启动UVM 
        run_test();
+       //创建指定的uvm_test实例，递归执行所有UVM_component的build_phase，agent在build_phase中通过get领取interface，进入run_phase开始发激励。
    end
 
 
