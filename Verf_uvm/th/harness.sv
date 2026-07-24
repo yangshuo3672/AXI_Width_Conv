@@ -51,6 +51,7 @@ module harness;
   RST_SYNC_VER U_RST_SYNC_VER1(.rst_out_n(rst_n_syn_s),.rst_in_n(rst_n),.clk(clk_s));
 
   // STB_HARNESS_INSTANCE_BEGIN
+  // 接口实例化
   axi_interface u_axi_if_m[axi2axi_env_dec::AXI_MST_NUM](
       .clk     (clk_m),
       .aresetn (rst_n_syn_m)
@@ -73,8 +74,11 @@ module harness;
 
   `AXI_MST_BIND   // connect u_axi_if_m to ktp top port
   `AXI_SLVBIND
-  CFG_MST_BIND
+  `CFG_MST_BIND
 
+  //对所有axi_interface实例动态绑定一个axi_debug模块，用于实时监控AXI握手信号，辅助波形调试和协议检查。常用于断言。
+  //bind <目标模块名> <需要绑定的模块名> <实例名>
+  //bind支持隐式名称匹配，自动在目标模块中查找同名信号。默认将axi_debug的同名端口连接到当前axi_if实例的同名信号上。
   bind axi_interface axi_debug u_axi_debug (
     aclk,
     aresetn,
@@ -107,6 +111,7 @@ module harness;
     rlast
   );
 
+  //UVM接口传递核心：
   initial begin
        // STB_HARNESS_SET_INTERFACE_START
        virtual axi_interface v_axi_mst_if[axi2axi_env_dec::AXI_MST_NUM];
@@ -115,7 +120,7 @@ module harness;
 
        virtual apb_interface v_apb_mst_if[axi2axi_env_dec::APB_MST_NUM];
 
-       v_axi_mst_if = u_axi_if_m;
+       v_axi_mst_if = u_axi_if_m;   //将物理接口句柄赋给virtual接口
        foreach(v_axi_mst_if[i]) begin
             uvm_config_db #(virtual axi_interface)::set(null, $sformatf("*.axi_mst_if_agent[%0d]*", i), "bus", v_axi_mst_if[i]);
        end
@@ -129,8 +134,9 @@ module harness;
        end
 
        // STB_HARNESS_SET_INTERFACE_END
+       //打印时间格式：ns，3位小数
        $timeformat(-9,3,"ns",12);
-    
+       //启动UVM
        run_test();
    end
 
