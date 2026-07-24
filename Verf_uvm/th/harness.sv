@@ -1,3 +1,5 @@
+//harness用于例化DUT，连接DUT和testbench + 生成时钟复位 + virtual接口声明，将interface绑定到DUT端口，将virtual interface传递给UVM（config_db）
+//作为DUT的顶层，testbench的底座.
 `ifndef HARNESS_SV
 `define HARNESS_SV
 
@@ -112,22 +114,28 @@ module harness;
   );
 
   //UVM接口传递核心：
+  //config_db:传递给UVM，让class世界的agent能够访问到物理信号。
   initial begin
        // STB_HARNESS_SET_INTERFACE_START
-       virtual axi_interface v_axi_mst_if[axi2axi_env_dec::AXI_MST_NUM];
+       // 声明一个虚拟指针用于指向实际硬件模块实例
+       virtual axi_interface v_axi_mst_if[axi2axi_env_dec::AXI_MST_NUM];    //使用::解析另一个class中的类内参数或静态变量，或者package中的参数和枚举
 
        virtual axi_interface v_axi_slv_if[axi2axi_env_dec::AXI_SLV_NUM];
 
        virtual apb_interface v_apb_mst_if[axi2axi_env_dec::APB_MST_NUM];
 
        v_axi_mst_if = u_axi_if_m;   //将物理接口句柄赋给virtual接口
+      //全局公告栏： set=贴公告“我有一个virtual指针，放在公告栏bus格子里，路径匹配 *.axi_mst_if_agent[0]”的组件可以来拿
+      //null：公告范围全局，路径匹配，公告栏格子编号，实际内容：指针
        foreach(v_axi_mst_if[i]) begin
             uvm_config_db #(virtual axi_interface)::set(null, $sformatf("*.axi_mst_if_agent[%0d]*", i), "bus", v_axi_mst_if[i]);
        end
+    
        v_axi_slv_if = u_axi_if_s;
        foreach(v_axi_slv_if[i]) begin
          uvm_config_db #(virtual axi_interface)::set(null, $sformatf("*.axi_slv_if_agent[%0d]*", i), "bus", v_axi_slv_if[i]);
        end
+    
        v_apb_mst_if = u_apb_if_m;
        foreach(v_apb_mst_if[i]) begin
          uvm_config_db #(virtual apb_interface)::set(null, $sformatf("*.apb_mst_if_agent[%0d]*", i), "bus", v_apb_mst_if[i]);
