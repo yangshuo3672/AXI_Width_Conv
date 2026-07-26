@@ -78,7 +78,7 @@ module ktp_cfg_reg #(
   assign b_error_fire = b_fire && (b_resp != 2'b00);
   assign r_error_fire = r_fire && (r_resp != 2'b00);
   assign ktp_irpt_ns  = |(irpt_raw_q & ~irpt_msk_q);
-  assign irpt_clr_pulse = (apb_write && valid_write_strobe && (paddr == REG_IRPT_CLR)) ? pwdata[1:0] : 2'b00;
+  assign irpt_clr_pulse = ( apb_valid_write && (paddr == REG_IRPT_CLR)) ? pwdata[1:0] : 2'b00;
 
 
   always_ff@(posedge clk or negedge resetn)begin
