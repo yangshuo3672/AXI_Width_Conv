@@ -71,7 +71,7 @@ module ktp_cfg_reg #(
   logic                           b_error_fire;
 
   assign apb_access         = psel && penable;
-  assign apb_valid_write    = apb_access && pwrite &&  (pstrb == 4'b1111)；
+  assign apb_valid_write    = apb_access && pwrite &&  (pstrb == 4'b1111);
   assign pready             = 1'b1;
   assign pslverr            = 1'b0;
 
