@@ -170,14 +170,14 @@ logic [W_W-1:0]  w_skid_dout;
 assign { awid_m, awaddr_m, awlen_m, awsize_m, awburst_m, awlock_m, awcache_m,awprot_m,awuser_m, awqos_m, awregion_m, awdomain_m, awsnoop_m, awbar_m } = aw_skid_dout;
 assign { wdata_m, wstrb_m, wuser_m, wlast_m } = w_skid_dout;
 
-assign aw_skid_din = { uwid, uawaddr, uawlen, uawsize, uawburst, uawlock, uawcache,uawprot, uawuser, uawqos, uawregion, uawdomain, uawsnoop, uawbar };
+assign aw_skid_din = { uawid, uawaddr, uawlen, uawsize, uawburst, uawlock, uawcache,uawprot, uawuser, uawqos, uawregion, uawdomain, uawsnoop, uawbar };
 assign w_skid_din = { uwdata, uwstrb, uwuser, uwlast };
-
+/*
 assign awsize_m = 3'd3;
 assign awburst_m = 2'd1;
 assign awlock_m = 1'd0;
 assign wstrb_m = 8'hff;
-
+*/
 //out skid buffer
 wire aw_skid_valid_i = uif_first_write_beat && uif_write_fire;
 wire w_skid_valid_i = uaww_valid && uif_write_fire;
