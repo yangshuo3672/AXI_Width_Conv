@@ -149,7 +149,7 @@ module ktp_top (
   wire ckg_bypass;
   wire clk_en;
   //wire unused_pprot = ^pprot;
-  wire ckg_bypass; 
+  //wire ckg_bypass; 
 
   //assign  
     
@@ -777,7 +777,7 @@ module ktp_top (
     .wakeup(awvalid_s || arvalid_s || wvalid_s),
     .active(u128_aww_valid || u128_ar_valid || u128_b_valid || u128_r_valid ||
             u64_s_aww_valid || u64_s_ar_valid || u64_s_b_valid || u64_s_r_valid),
-    .clk_en(clk_en_unused)
+    .clk_en(clk_en)
   );
 
 endmodule
