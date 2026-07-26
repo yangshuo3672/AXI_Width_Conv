@@ -227,7 +227,7 @@ module ktp_axi2uif #(
     .empty  (ar_fifo_empty),
     .level  ()
   );
-  
+  logic   uif_write_fire;
   assign  uaww_valid  = first_write_beat ? ( !aw_fifo_empty && !w_fifo_empty ) : ( !w_fifo_empty );
   assign  aw_fifo_pop = uif_write_fire && first_write_beat;
   assign  w_fifo_pop  = uif_write_fire;
@@ -254,9 +254,9 @@ end
   wire write_fire       = uaww_valid && uaww_ready;  //uif写请求与下游握手，记为一笔uif写事件.
   wire current_wlast    = w_fifo_dout[0];  //wlast_s 判断当前是不是
 
-  assign uaww_valid = write_can_move;  //aw和w fifo内数据状态满足move条件，发起uif写请求.
-  assign aw_fifo_pop = write_fire && first_write_beat;  //uif发起写请求且当前为first beat，pop aw fifo数据。
-  assign w_fifo_pop  = write_fire ;                     //每个burst AW pop一次，W pop awlen次。
+  //assign uaww_valid = write_can_move;  //aw和w fifo内数据状态满足move条件，发起uif写请求.
+  //assign aw_fifo_pop = write_fire && first_write_beat;  //uif发起写请求且当前为first beat，pop aw fifo数据。
+  //assign w_fifo_pop  = write_fire ;                     //每个burst AW pop一次，W pop awlen次。
  
 
 //register aw 
