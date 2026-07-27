@@ -1,6 +1,6 @@
-#ifndef AXI2AXI_RM__SV
-#define AXI2AXI_RM__SV
-#define FULL_ADDR 64'hffff_ffff_ffff_ffff
+`ifndef AXI2AXI_RM__SV
+`define AXI2AXI_RM__SV
+`define FULL_ADDR 64'hffff_ffff_ffff_ffff
 
 //Reference Model:Complete handing data from monitor port,and then send to checker
 
@@ -12,7 +12,7 @@ class axi2axi_rm extends stb_function_component #(2, 2);
 //%%%%%%%%%%%%%%%%%%%%%%%%
 //Coding end
 // rand int pkt_len; // Define the packet length
-`uvm_component_utils begin(axi2axi_rm)
+`uvm_component_utils_begin(axi2axi_rm)
 // Add variables into field-automation base on project requirement
 //Coding begin
 //%%%%%%%%%%%%%%%%%%%%%
@@ -28,7 +28,7 @@ extern virtual task run_phase(uvm_phase phase);//Components implement behavior t
 
 //axi_xaction processing threas
 extern virtual task axi_xaction_0_process();
-extern virtual task axi_xaction_1 process();
+extern virtual task axi_xaction_1_process();
 
 extern function strb_change(input [127:0] wstrb, input [31:0] size, output [127:0] strb);
   
@@ -102,11 +102,11 @@ task axi2axi_rm::axi_xaction_0_process();
       //Coding begin
       //%%%%%%%%%%%%%%%%%%
       //....................
-      `uvm_info(get_type_name(), $sformatf("this is an AXI TRANSACTION from master"), UVM HIGH);	
-      `uvm_info(get_type_name(), $sformatf("print transaction from master at rm \n%s", axi_xaction_in.sprint()), UVM DEBUG);	
+      `uvm_info(get_type_name(), $sformatf("this is an AXI TRANSACTION from master"), UVM_HIGH);	
+      `uvm_info(get_type_name(), $sformatf("print transaction from master at rm \n%s", axi_xaction_in.sprint()), UVM_DEBUG);	
       
       if (axi_xaction_in.m_enXactDir == axi_dec::DIR_WRITE) begin
-         `uvm_info(get_type_name(), $sformatf("print the length = %0d & size = %0d from master", axi_xaction_in.m_enXactLength, axi_xaction_in.m_enXferSize), UVM HIGH);
+        `uvm_info(get_type_name(), $sformatf("print the length = %0d & size = %0d from master", axi_xaction_in.m_enXactLength, axi_xaction_in.m_enXferSize), UVM_HIGH);
          case (axi_xaction_in.m_enXactBurst)
             axi_dec::BURST_INCR:
                 begin // INCR burst
@@ -118,21 +118,21 @@ task axi2axi_rm::axi_xaction_0_process();
              end
           axi_dec::BURST WRAP:	
              begin // WRAP burst
-               `uvm_info(get_type_name(), $sformatf("print the length = %0d", axi_xaction_in.m_enXactLength), UVM HIGH);
+               `uvm_info(get_type_name(), $sformatf("print the length = %0d", axi_xaction_in.m_enXactLength), UVM_HIGH);
              end
           endcase
       end  //if
       else if (axi_xaction_in.m_enXactDir == axi_dec::DIR_READ) begin
         case (axi_xaction_in.m_enXactBurst)
-               axi_dec::BURST INCR:
+               axi_dec::BURST_INCR:
                  begin              // INCR burst
 
                  end
-               axi_dec::BURST FIXED:
+               axi_dec::BURST_FIXED:
                  begin             // FIXED burst
 
                  end
-               axi dec::BURST WRAP:
+               axi dec::BURST_WRAP:
                  begin // WRAP burst
 
                  end
@@ -144,14 +144,14 @@ task axi2axi_rm::axi_xaction_0_process();
        end  //else if
       
       //Coding end
-      `uvm_info(get_type_name(), $sformatf("send the rm transaction from AXI MASTER to CHECKER\n"), UVM HIGH);
+      `uvm_info(get_type_name(), $sformatf("send the rm transaction from AXI MASTER to CHECKER\n"), UVM_HIGH);
       #20ns;
       this.out_port[0].put(rm_out_tr);	 // Put rm handled transaction to port
       //Coding end
     end //while (1)
 join_none
   
-endtask::axi_xaction_0_process
+endtask:axi_xaction_0_process
 
 
 
@@ -195,10 +195,10 @@ task axi2axi_rm::axi_xaction_1_process();
       //%%%%%%%%%%%%%%%%%%%%%
       //.....................
       `uvm_info(get_type_name(), $sformatf("this is an AXI TRANSACTION from slave"), UVM HIGH);	
-      `uvm_info(get_type_name(), $sformatf("print transaction from slave at rm \n%s", axi_xaction_in.sprint()), UVM DEBUG);	
+      `uvm_info(get_type_name(), $sformatf("print transaction from slave at rm \n%s", axi_xaction_in.sprint()), UVM_DEBUG);	
       
       if (axi_xaction_in.m_enXactDir == axi_dec::DIR_WRITE) begin
-        `uvm_info(get_type_name(), $sformatf("print the length = %0d & size = %0d from slave", axi_xaction_in.m_enXactLength, axi_xaction_in.m_enXferSize), UVM HIGH);
+        `uvm_info(get_type_name(), $sformatf("print the length = %0d & size = %0d from slave", axi_xaction_in.m_enXactLength, axi_xaction_in.m_enXferSize), UVM_HIGH);
          case (axi_xaction_in.m_enXactBurst)
             axi_dec::BURST_INCR:
                 begin // INCR burst
@@ -210,21 +210,21 @@ task axi2axi_rm::axi_xaction_1_process();
              end
           axi_dec::BURST WRAP:	
              begin // WRAP burst
-               `uvm_info(get_type_name(), $sformatf("print the length = %0d", axi_xaction_in.m_enXactLength), UVM HIGH);
+               `uvm_info(get_type_name(), $sformatf("print the length = %0d", axi_xaction_in.m_enXactLength), UVM_HIGH);
              end
           endcase
       end  //if
       else if (axi_xaction_in.m_enXactDir == axi_dec::DIR_READ) begin
         case (axi_xaction_in.m_enXactBurst)
-               axi_dec::BURST INCR:
+               axi_dec::BURST_INCR:
                  begin              // INCR burst
 
                  end
-               axi_dec::BURST FIXED:
+               axi_dec::BURST_FIXED:
                  begin             // FIXED burst
 
                  end
-               axi dec::BURST WRAP:
+               axi dec::BURST_WRAP:
                  begin // WRAP burst
 
                  end
@@ -235,14 +235,14 @@ task axi2axi_rm::axi_xaction_1_process();
           endcase
        end  //else if
       //Coding end
-      `uvm_info(get_type_name(), $sformatf("send the rm transaction from AXI MASTER to CHECKER\n"), UVM HIGH);
+      `uvm_info(get_type_name(), $sformatf("send the rm transaction from AXI MASTER to CHECKER\n"), UVM_HIGH);
       //#20ns;
-      this.out_port[0].put(rm_out_tr);	 // Put rm handled transaction to port
+      this.out_port[1].put(rm_out_tr);	 // Put rm handled transaction to port
       //Coding end
     end //while (1)
 join_none
   
-endtask::axi_xaction_1_process
+endtask:axi_xaction_1_process
 
 `endif
 
