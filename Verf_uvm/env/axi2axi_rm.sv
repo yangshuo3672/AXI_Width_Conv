@@ -12,6 +12,20 @@ class axi2axi_rm extends stb_function_component #(2, 2);
 //%%%%%%%%%%%%%%%%%%%%%%%%
 //Coding end
 // rand int pkt_len; // Define the packet length
+
+//uvm_component_utils_** 宏： UVM的component注册宏，用于注册component到factory
+//uvm_field_** 宏: 一般用于把成员变量加入到field automation,提供的作用有copy compare print pack unpack record
+/*
+uvm_field_int(var, FLAG)	注册整型变量
+uvm_field_real(var, FLAG)	注册 real 类型
+uvm_field_string(var, FLAG)	注册字符串
+uvm_field_enum(T, var, FLAG)	注册枚举
+uvm_field_object(var, FLAG)	注册 UVM object 句柄
+uvm_field_array_int(var, FLAG)	注册动态整型数组
+uvm_field_queue_int(var, FLAG)	注册整型队列
+uvm_field_sarray_int(var, FLAG)	注册静态数组
+注册后，UVM会自动为这些变量提供copy() compare() print() pack()/unpack() record() clone()（object才有）等功能
+*/
 `uvm_component_utils_begin(axi2axi_rm)
 // Add variables into field-automation base on project requirement
 //Coding begin
@@ -20,7 +34,7 @@ class axi2axi_rm extends stb_function_component #(2, 2);
 `uvm_component_utils_end
 
 extern function new(string	name,
-                    uvm component	parent
+                    uvm_component	parent
                    );
 
 extern virtual function void build_phase(uvm_phase phase); //Calls super.build_phase(phase) to enable automatic get config and create object
@@ -50,20 +64,20 @@ endfunction: new
 
 //************************************************function build_phase****************************************************//
   
-function void axi2axi_rm::build phase(uvm phase phase);
+function void axi2axi_rm::build_phase(uvm phase phase);
     super.build phase(phase);
-endfunction: build phase
+endfunction: build_phase
 
 //****************************************************task run_phase******************************************************//
   
-task axi2axi_rm::run phase(uvm_phase phase);
+task axi2axi_rm::run_phase(uvm_phase phase);
    super.run_phase(phase);
    `uvm_info(get_type_name(), $sformatf("begin the RM"), UVM HIGH);
    fork
        axi_xaction_0_process();
        axi_xaction_1_process();
    join none
-endtask: run phase
+endtask: run_phase
 
 //**********************************************task axi_xaction_0_process**************************************************// 
  
