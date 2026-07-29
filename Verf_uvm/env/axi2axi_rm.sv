@@ -24,7 +24,7 @@ uvm_field_object(var, FLAG)	注册 UVM object 句柄
 uvm_field_array_int(var, FLAG)	注册动态整型数组
 uvm_field_queue_int(var, FLAG)	注册整型队列
 uvm_field_sarray_int(var, FLAG)	注册静态数组
-注册后，UVM会自动为这些变量提供copy() compare() print() pack()/unpack() record() clone()（object才有）等功能
+注册后，UVM会自动为这些变量提供copy() compare() print() pack()/unpack() record() clone()（object才有）等功能，配合uvm_config_db#(T)::set/get，这些字段也可以参与配置自动化。
 */
 `uvm_component_utils_begin(axi2axi_rm)
 // Add variables into field-automation base on project requirement
@@ -33,6 +33,11 @@ uvm_field_sarray_int(var, FLAG)	注册静态数组
 //Coding end
 `uvm_component_utils_end
 
+//extern: 占位符或预告，告诉编译器，这个函数的具体代码不在这里，在类的外面或者另一个文件
+//function new：构造类的函数，当这个类被实例化(创建对象)时，new函数会自动执行，用于给对象的变量赋初值
+//string name：名称参数，代表这个组件在UVM层次结构树中的实例名称，比如rm env agent等
+//uvm_component parent:父级参数，UVM组件句柄，代表这个组件的上一层父组件（比如可以把agent的parent设为env）
+//这是组件（component）与对象（object）的核心区别—————只有组件有这个parent用于构建树形结构，实现配置传递（config_db）和报告（report）层次
 extern function new(string	name,
                     uvm_component	parent
                    );
@@ -55,7 +60,9 @@ endclass: axi2axi_rm
 //**********************************************************************************************************************//
 
 //****************************************************function new******************************************************//
-  
+
+//类的外部实现定义，真正的函数体。
+//调用父类构造函数，再进行成员变量初始化
 function axi2axi_rm::new(string	name,
                          uvm_component parent
                         );
@@ -63,13 +70,13 @@ function axi2axi_rm::new(string	name,
 endfunction: new
 
 //************************************************function build_phase****************************************************//
-  
+//只调用了父类build_phase
 function void axi2axi_rm::build_phase(uvm phase phase);
     super.build phase(phase);
 endfunction: build_phase
 
 //****************************************************task run_phase******************************************************//
-  
+
 task axi2axi_rm::run_phase(uvm_phase phase);
    super.run_phase(phase);
    `uvm_info(get_type_name(), $sformatf("begin the RM"), UVM HIGH);
