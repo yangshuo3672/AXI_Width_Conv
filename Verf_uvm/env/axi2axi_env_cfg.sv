@@ -69,6 +69,34 @@ function void axi2axi_env_cfg::post_randomize();
     super.post_randomize();
       //  Extend post_randomize() base on project requiement
       //  Coding begin
+this.axi_mst_if_agent_cfg[0].data_width = 'd128;
+this.axi_mst_if_agent_cfg[0].addr_width = 'd32;
+this.axi_mst_if_agent_cfg[0].id_width = 'd8;
+this.axi_mst_if_agent_cfg[0].wrid_width = 'd8;
+this.axi_mst_if_agent_cfg[0].rdid_width = 'd8;
+
+this.axi_slv_if_agent_cfg[0].data_width = 'd64;
+this.axi_slv_if_agent_cfg[0].addr_width = 'd32;
+this.axi_slv_if_agent_cfg[0].id_width = 'd8;
+this.axi_slv_if_agent_cfg[0].wrid_width = 'd8;
+this.axi_slv_if_agent_cfg[0].rdid_width = 'd8;
+
+//APB
+this.apb_mst_if_agent_cfg[0].data_width = 'd32;
+this.apb_mst_if_agent_cfg[0].addr_width = 'd12;
+this.apb_mst_if_agent_work_mode[0] = stb_dec::REG_MASTER_NO_MONITOR;//TODO
+this.apb_mst_if_agent_sw[0] = stb_dec::ON;
+
+//mon
+this.axi_mst_if_agent_cfg[0].mon_cfg.fcov_cfg.out_of_order_depth_max = 16;
+this.axi_mst_if_agent_cfg[0].mon_cfg.fcov_cfg.interleave_depth_max = 16;
+this.axi_mst_if_agent_cfg[0].mon_cfg.fcov_cfg.addr_max = 32'hffffffff;
+this.axi_mst_if_agent_cfg[0].mon_cfg.fcov_cfg.id_max = 8'hff;
+
+this.axi_slv_if_agent_cfg[0].mon_cfg.fcov_cfg.out_of_order_depth_max = 16;
+this.axi_slv_if_agent_cfg[0].mon_cfg.fcov_cfg.interleave_depth_max = 16;
+this.axi_slv_if_agent_cfg[0].mon_cfg.fcov_cfg.addr_max = 32'hffffffff;
+this.axi_slv_if_agent_cfg[0].mon_cfg.fcov_cfg.id_max = 8'hff;
       //  %%%%%%%%%%%%%%%
       //  Coding end
   
