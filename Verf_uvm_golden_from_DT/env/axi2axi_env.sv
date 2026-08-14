@@ -140,4 +140,42 @@ function void axi2axi_env::connect_phase(uvm_phase phase);
 endfunction: connect_phase
 
 
+function void axi2axi_env::end_of_elaboration_phase(uvm_phase phase);
+    super.end_of_elaboration_phase(phase);
+    `uvm_info(get_type_name(), "end_of_elaboration_phase(): end_of_elaboration_phase() finished", UVM_HIGH);
+endfunction: end_of_elaboration_phase
+
+task axi2axi_env::reset_phase(uvm_phase phase);
+    super.reset_phase(phase);
+    phase.raise_objection(this);
+    phase.drop_objection(this);
+    `uvm_info(get_type_name(), "reset_phase(): reset_phase() finished", UVM_HIGH);
+endtask: reset_phase
+
+task axi2axi_env::configure_phase(uvm_phase phase);
+    super.configure_phase(phase);
+    phase.raise_objection(this);
+    phase.drop_objection(this);
+    `uvm_info(get_type_name(), "configure_phase(): configure_phase() finished", UVM_HIGH);
+endtask: configure_phase
+
+task axi2axi_env::shutdown_phase(uvm_phase phase);
+    super.shutdown_phase(phase);
+    phase.raise_objection(this);
+    phase.drop_objection(this);
+    `uvm_info(get_type_name(), "shutdown_phase(): shutdown_phase() finished", UVM_HIGH);
+endtask: shutdown_phase
+
+task axi2axi_env::report_phase(uvm_phase phase);
+    super.report_phase(phase);
+    phase.raise_objection(this);
+    phase.drop_objection(this);
+    `uvm_info(get_type_name(), "report_phase(): report_phase() finished", UVM_HIGH);
+endtask: report_phase
+
+function void axi2axi_env::get_linkbench_env_cfg();
+    linkbench_cfg = cfg;
+endfunction
+
+
         
