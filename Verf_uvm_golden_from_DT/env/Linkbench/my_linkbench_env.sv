@@ -56,4 +56,47 @@ function void my_linkbench_env::get_linkbench_env_cfg();
     return;
 endfunction:get_linkbench_env_cfg
 
+以下是图片中的代码：
+
+function void my_linkbench_env::build_phase(uvm_phase phase);
+    super.build_phase(phase);
+//Changed by YS
+    //if(this.linkbench_cfg == null)begin
+    //  linkbench_cfg = linkbench_env_cfg#(T)::type_id::create("linkbench_cfg");
+    //end
+//end Change
+    get_linkbench_env_cfg();
+    if(this.linkbench_cfg == null) begin
+        `uvm_fatal(get_type_name(), $sformatf("build_phase(): the my_linkbench_env need a linkbench_env_cfg, please confirm"))
+    end
+    `uvm_info(get_type_name(), $sformatf("build_phase(): The env configure display: 
+%s", this.linkbench_cfg.sprint()), UVM_HIGH);
+
+    //@mst_agent
+    apb_mst_if_agent                  = new[T::APB_MST_NUM];                   /// < The apb_if_agent
+    ahb_mst_if_agent                  = new[T::AHB_MST_NUM];                   /// < The ahb_if_agent
+    axi_mst_if_agent                  = new[T::AXI_MST_NUM];                   /// < The axi_if_agent
+
+    //@slv_agent
+    apb_slv_if_agent                  = new[T::APB_SLV_NUM];                   /// < The apb_if_agent
+    ahb_slv_if_agent                  = new[T::AHB_SLV_NUM];                   /// < The ahb_if_agent
+    axi_slv_if_agent                  = new[T::AXI_SLV_NUM];                   /// < The axi_if_agent
+
+    //@Q local
+    axi_direct_drv_library            = new[T::AXI_MST_NUM];
+    ahb_direct_drv_library            = new[T::AHB_MST_NUM];
+    apb_direct_drv_library            = new[T::APB_MST_NUM];
+
+    hisi_axi_drv                      = new[T::AXI_MST_NUM];
+    hisi_ahb_drv                      = new[T::AHB_MST_NUM];
+    hisi_apb_drv                      = new[T::APB_MST_NUM];
+
+    //@Q local
+    ahb_cb                            = new[T::AHB_MST_NUM];
+    axi_cb                            = new[T::AXI_MST_NUM];
+
+    ahb_sb                            = new[T::AHB_MST_NUM];
+    axi_sb                            = new[T::AXI_MST_NUM];
+
+this.vsqr = linkbench_virtual_sequencer#(T)::type_id::create("vsqr", this);
 
