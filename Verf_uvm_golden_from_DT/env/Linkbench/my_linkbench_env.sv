@@ -100,3 +100,66 @@ function void my_linkbench_env::build_phase(uvm_phase phase);
 
 this.vsqr = linkbench_virtual_sequencer#(T)::type_id::create("vsqr", this);
 
+// @create apb_mst_if_agent
+foreach(this.linkbench_cfg.apb_mst_if_agent_sw[i]) begin
+    if(this.linkbench_cfg.apb_mst_if_agent_sw[i] == stb_dec::ON) begin
+        this.apb_mst_if_agent[i] = my_apb_interface_agent::type_id::create($sformatf("apb_mst_if_agent[%0d]", i), this);
+        this.apb_mst_if_agent[i].work_mode = this.linkbench_cfg.apb_mst_if_agent_work_mode[i];
+        this.apb_mst_if_agent[i].cfg = this.linkbench_cfg.apb_mst_if_agent_cfg[i];
+        `uvm_info(get_type_name(), $sformatf("build_phase():apb_mst_if_agent[%0d] has been constructed", i), UVM_HIGH);
+    end
+end
+
+// @create ahb_mst_if_agent
+foreach(this.linkbench_cfg.ahb_mst_if_agent_sw[i]) begin
+    if(this.linkbench_cfg.ahb_mst_if_agent_sw[i] == stb_dec::ON) begin
+        this.ahb_mst_if_agent[i] = ahb_interface_agent::type_id::create($sformatf("ahb_mst_if_agent[%0d]", i), this);
+        this.ahb_mst_if_agent[i].work_mode = this.linkbench_cfg.ahb_mst_if_agent_work_mode[i];
+        this.ahb_mst_if_agent[i].cfg = this.linkbench_cfg.ahb_mst_if_agent_cfg[i];
+        `uvm_info(get_type_name(), $sformatf("build_phase():ahb_mst_if_agent[%0d] has been constructed", i), UVM_HIGH);
+    end
+end
+
+// @create axi_mst_if_agent
+foreach(this.linkbench_cfg.axi_mst_if_agent_sw[i]) begin
+    if(this.linkbench_cfg.axi_mst_if_agent_sw[i] == stb_dec::ON) begin
+        this.axi_mst_if_agent[i] = axi_interface_agent::type_id::create($sformatf("axi_mst_if_agent[%0d]", i), this);
+        this.axi_mst_if_agent[i].work_mode = this.linkbench_cfg.axi_mst_if_agent_work_mode[i];
+        this.axi_mst_if_agent[i].cfg = this.linkbench_cfg.axi_mst_if_agent_cfg[i];
+        `uvm_info(get_type_name(), $sformatf("build_phase():axi_mst_if_agent[%0d] has been constructed", i), UVM_HIGH);
+    end
+end
+
+// @create apb_slv_if_agent
+foreach(this.linkbench_cfg.apb_slv_if_agent_sw[i]) begin
+    if(this.linkbench_cfg.apb_slv_if_agent_sw[i] == stb_dec::ON) begin
+        this.apb_slv_if_agent[i] = my_apb_interface_agent::type_id::create($sformatf("apb_slv_if_agent[%0d]", i), this);
+        this.apb_slv_if_agent[i].work_mode = this.linkbench_cfg.apb_slv_if_agent_work_mode[i];
+        this.apb_slv_if_agent[i].cfg = this.linkbench_cfg.apb_slv_if_agent_cfg[i];
+        `uvm_info(get_type_name(), $sformatf("build_phase():apb_slv_if_agent[%0d] has been constructed", i), UVM_HIGH);
+    end
+end
+
+// @create ahb_slv_if_agent
+foreach(this.linkbench_cfg.ahb_slv_if_agent_sw[i]) begin
+    if(this.linkbench_cfg.ahb_slv_if_agent_sw[i] == stb_dec::ON) begin
+        this.ahb_slv_if_agent[i] = ahb_interface_agent::type_id::create($sformatf("ahb_slv_if_agent[%0d]", i), this);
+        this.ahb_slv_if_agent[i].work_mode = this.linkbench_cfg.ahb_slv_if_agent_work_mode[i];
+        this.ahb_slv_if_agent[i].cfg = this.linkbench_cfg.ahb_slv_if_agent_cfg[i];
+        `uvm_info(get_type_name(), $sformatf("build_phase():ahb_slv_if_agent[%0d] has been constructed", i), UVM_HIGH);
+    end
+end
+
+// @create axi_slv_if_agent
+foreach(this.linkbench_cfg.axi_slv_if_agent_sw[i]) begin
+    if(this.linkbench_cfg.axi_slv_if_agent_sw[i] == stb_dec::ON) begin
+        this.axi_slv_if_agent[i] = axi_interface_agent::type_id::create($sformatf("axi_slv_if_agent[%0d]", i), this);
+        this.axi_slv_if_agent[i].work_mode = this.linkbench_cfg.axi_slv_if_agent_work_mode[i];
+        this.axi_slv_if_agent[i].cfg = this.linkbench_cfg.axi_slv_if_agent_cfg[i];
+        `uvm_info(get_type_name(), $sformatf("build_phase():axi_slv_if_agent[%0d] has been constructed", i), UVM_HIGH);
+    end
+end
+
+`uvm_info(get_type_name(),"build_phase():build_phase() finished",UVM_HIGH);
+endfunction:build_phase
+                                         
