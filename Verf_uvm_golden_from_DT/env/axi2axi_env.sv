@@ -98,25 +98,29 @@ endfunction: build_phase
 function void axi2axi_env::connect_phase(uvm_phase phase);
   super.connect_phase(phase);
 
+  //analysis_export或者是analysis_export这些端口是 uvm_tlm_analysis_fifo 内部已经封装好的成员变量，实例化 FIFO 后直接通过 . 访问即可。//
   // rm fifo connect to interface monitor begin
-  this.axi_mst_if_agent[0].mon_port.connect(this.axi_mst_if2rm_port_fifo.analysis_export);
-  this.axi_slv_if_agent[0].mon_port.connect(this.axi_slv_if2rm_port_fifo.analysis_export);
-  // rm fifo connect to interface monitor finished
+  //将mst/slv-agent-Mointor的数据发送到if2rm_fifo
+  this.axi_mst_if_agent[0].mon_port.connect(this.axi_mst_if2rm_port_fifo.analysis_export);//将AXI agent的monitor端口连接到if2rm_fifo的接收端analysis_export
+  this.axi_slv_if_agent[0].mon_port.connect(this.axi_slv_if2rm_port_fifo.analysis_export);//Monitor只管发送，不管对方有没有准备好，FIFO内部队列自动维护队列缓存。
+
 
   // rm fifo connect to rm input begin
-  this.rm.in_port[0].connect(this.axi_mst_if2rm_port_fifo.blocking_get_peek_export);
+  //将if2rm_fifo中的数据发送到RM的in_port[]
+    this.rm.in_port[0].connect(this.axi_mst_if2rm_port_fifo.blocking_get_peek_export);//fifo提供
   this.rm.in_port[1].connect(this.axi_slv_if2rm_port_fifo.blocking_get_peek_export);
-  // rm fifo connect to rm input finished
+ 
 
   // rm connect to rm out fifo begin
+  //
   this.rm.out_port[0].connect(this.rm_out_port_fifo[0].blocking_put_export);
   this.rm.out_port[1].connect(this.rm_out_port_fifo[1].blocking_put_export);
-  // rm connect to rm out fifo finish
+
 
   // rm out fifo connect to checker begin
   this.checker_inst.in_port[0].connect(this.rm_out_port_fifo[0].blocking_get_peek_export);
   this.checker_inst.in_port[1].connect(this.rm_out_port_fifo[1].blocking_get_peek_export);
-  // rm out fifo connect to checker finish
+
 
   `uvm_info(get_type_name(), "connect_phase() finished", UVM_HIGH);
   regmodel.default_map.set_sequencer(apb_mst_if_agent[0].apb_sqr, apb_mst_if_agent[0].reg_adapter);//frontdoor access
