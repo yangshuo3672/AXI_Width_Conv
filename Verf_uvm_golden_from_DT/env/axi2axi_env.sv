@@ -174,7 +174,7 @@ task axi2axi_env::report_phase(uvm_phase phase);
 endtask: report_phase
 
 function void axi2axi_env::get_linkbench_env_cfg();
-    linkbench_cfg = cfg;
+    linkbench_cfg = cfg;//将axi2axi_env_cfg的实例赋给linkbench_cfg成员变量
 endfunction
 
 
