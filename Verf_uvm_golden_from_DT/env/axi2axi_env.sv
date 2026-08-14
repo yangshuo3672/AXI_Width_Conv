@@ -100,31 +100,44 @@ function void axi2axi_env::connect_phase(uvm_phase phase);
 
   //analysis_export或者是analysis_export这些端口是 uvm_tlm_analysis_fifo 内部已经封装好的成员变量，实例化 FIFO 后直接通过 . 访问即可。//
   // rm fifo connect to interface monitor begin
-  //将mst/slv-agent-Mointor的数据发送到if2rm_fifo
+  // 将mst/slv-agent-Mointor的数据发送到if2rm_fifo ： 使用analysis_export非阻塞广播写
   this.axi_mst_if_agent[0].mon_port.connect(this.axi_mst_if2rm_port_fifo.analysis_export);//将AXI agent的monitor端口连接到if2rm_fifo的接收端analysis_export
   this.axi_slv_if_agent[0].mon_port.connect(this.axi_slv_if2rm_port_fifo.analysis_export);//Monitor只管发送，不管对方有没有准备好，FIFO内部队列自动维护队列缓存。
 
 
-  // rm fifo connect to rm input begin
-  //将if2rm_fifo中的数据发送到RM的in_port[]
-    this.rm.in_port[0].connect(this.axi_mst_if2rm_port_fifo.blocking_get_peek_export);//fifo提供
+  // rm fifo connect to rm input begin 将if2rm_fifo中的数据发送到RM的in_port[]
+  // if2rm_fifo提供阻塞读和预览服务:peek是预览，get是取出（从队列头部移除）；关键是解耦Mointor和RM的时序差异
+  this.rm.in_port[0].connect(this.axi_mst_if2rm_port_fifo.blocking_get_peek_export);
   this.rm.in_port[1].connect(this.axi_slv_if2rm_port_fifo.blocking_get_peek_export);
  
 
-  // rm connect to rm out fifo begin
-  //
+  // rm connect to rm out fifo begin 将RM的数据通过out_port输出到rm_ouy_fifo；将rm的数据put：this.out_port[0].put(rm_out_tr)
+  //blocking_put_export  FIFO提供阻塞写接收服务
   this.rm.out_port[0].connect(this.rm_out_port_fifo[0].blocking_put_export);
   this.rm.out_port[1].connect(this.rm_out_port_fifo[1].blocking_put_export);
 
 
-  // rm out fifo connect to checker begin
+  // rm out fifo connect to checker begin 将rm_out_fifo的数据输出到checker，
+  // 因为Cheker是消费者，需要主动控制读取节奏（一笔一笔取出比对），所以使用blocking_get_peek_export；而analysis_export是被动接收（广播推送），不适合Checker这种需要阻塞等待顺序处理的场景
   this.checker_inst.in_port[0].connect(this.rm_out_port_fifo[0].blocking_get_peek_export);
   this.checker_inst.in_port[1].connect(this.rm_out_port_fifo[1].blocking_get_peek_export);
 
 
   `uvm_info(get_type_name(), "connect_phase() finished", UVM_HIGH);
-  regmodel.default_map.set_sequencer(apb_mst_if_agent[0].apb_sqr, apb_mst_if_agent[0].reg_adapter);//frontdoor access
+    //set_sequencer(sqr,adapter):告诉RAL通过哪个sequencer发transaction，以及用什么adapter寄存器操作转成总线协议
+    //set_auto_predict(1)：自动预测使能。前门访问（通过总线）后，RAL 自动把 mirror 值更新为写入值，无需手动调用 predict()
+  regmodel.default_map.set_sequencer(apb_mst_if_agent[0].apb_sqr, apb_mst_if_agent[0].reg_adapter);//frontdoor access前门寄存器访问配置
   regmodel.default_map.set_auto_predict(1);
   `uvm_info(get_type_name(), "connect_phase() finished", UVM_HIGH);
-
+/*
+| 组件      | 端口方向 | 端口类型                         | 对接的 FIFO 端口                | 通信方式   |
+| ------- | ---- | ---------------------------- | -------------------------- | ------ |
+| Monitor | 输出   | `uvm_analysis_port`          | `analysis_export`          | 非阻塞广播写 |
+| RM      | 输入   | `uvm_blocking_get_peek_port` | `blocking_get_peek_export` | 阻塞读    |
+| RM      | 输出   | `uvm_blocking_put_port`      | `blocking_put_export`      | 阻塞写    |
+| Checker | 输入   | `uvm_blocking_get_peek_port` | `blocking_get_peek_export` | 阻塞读    |
+*/
 endfunction: connect_phase
+
+
+        
