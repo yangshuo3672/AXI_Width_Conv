@@ -163,3 +163,74 @@ end
 `uvm_info(get_type_name(),"build_phase():build_phase() finished",UVM_HIGH);
 endfunction:build_phase
                                          
+
+function void my_linkbench_env::connect_phase(uvm_phase phase);
+
+   super.connect_phase(phase);
+
+   //handle_connect vsqr.apb_mst_sqr -> apb_mst_if_agent.sqr
+   foreach (this.linkbench_cfg.apb_mst_if_agent_sw[i])
+   if(this.linkbench_cfg.apb_mst_if_agent_sw[i] == stb_dec::ON) begin
+      this.vsqr.apb_mst_sqr[i] = this.apb_mst_if_agent[i].sqr;
+   end
+
+   //handle_connect vsqr.ahb_mst_sqr -> ahb_mst_if_agent.sqr
+   foreach(this.linkbench_cfg.ahb_mst_if_agent_sw[i])
+   if(this.linkbench_cfg.ahb_mst_if_agent_sw[i] == stb_dec::ON) begin
+      this.vsqr.ahb_mst_sqr[i] = this.ahb_mst_if_agent[i].sqr;
+   end
+
+   //handle_connect vsqr.axi_mst_sqr -> axi mst_if_agent.sqr
+   foreach(this.linkbench_cfg.axi_mst_if_agent_sw[i])
+   if(this.linkbench_cfg.axi_mst_if_agent_sw[i] == stb_dec::ON) begin
+      this.vsqr.axi_mst_sqr[i] = this.axi_mst_if_agent[i].sqr;
+   end
+
+   foreach(axi_direct_drv_library[i])
+   if(this.linkbench_cfg.axi_mst_if_agent_sw[i] == stb_dec::ON) begin
+      axi_direct_drv_library[i] = axi_ext_dir_sequence::type_id::create($sformatf("axi_drv_lib%0d",i));
+      axi_direct_drv_library[i].p_sequencer = this.axi_mst_if_agent[i].sqr;
+      hisi_axi_drv[i]=new(axi_direct_drv_library[i]);
+      hisi_axi_drv[i].vip_id = i;
+      uvm_config_db#(c_bus_base)::set(uvm_root::get(), "global_direct_drv", $psprintf("hisi_axi_drv%0d",i), this.hisi_axi_drv[i]);
+   end
+
+   `uvm_info(get_type_name(), $sformatf("hello %0d, size0 %0d, size1 %0d", T::AHB_MST_NUM, $size(ahb_direct_drv_library), $size(ahb_mst_if_agent)), UVM_NONE)
+
+   foreach(ahb_direct_drv_library[i])
+   if(this.linkbench_cfg.ahb_mst_if_agent_sw[i] == stb_dec::ON) begin
+      ahb_direct_drv_library[i] = ahb_ext_dir_sequence::type_id::create($sformatf("ahb_drv_lib%0d",i));
+      ahb_direct_drv_library[i].p_sequencer = this.ahb_mst_if_agent[i].sqr;
+      hisi_ahb_drv[i]=new(ahb_direct_drv_library[i]);
+      uvm_config_db#(c_bus_base)::set(uvm_root::get(), "global_direct_drv", $psprintf("hisi_ahb_drv%0d",i), this.hisi_ahb_drv[i]);
+   end
+
+   foreach(apb_direct_drv_library[i])
+   if(this.linkbench_cfg.apb_mst_if_agent_sw[i] == stb_dec::ON) begin
+      apb_direct_drv_library[i] = apb_ext_dir_sequence::type_id::create($sformatf("apb_drv_lib%0d",i));
+      apb_direct_drv_library[i].p_sequencer = this.apb_mst_if_agent[i].sqr;
+      hisi_apb_drv[i]=new(apb_direct_drv_library[i]);
+      uvm_config_db#(c_bus_base)::set(uvm_root::get(), "global_direct_drv", $psprintf("hisi_apb_drv%0d",i), this.hisi_apb_drv[i]);
+   end
+
+  foreach(ahb_sb[sb_index])
+    if(this.linkbench_cfg.ahb_slv_if_agent_sw[sb_index] == stb_dec::ON) begin
+        this.ahb_sb[sb_index] = new($psprintf("ahb_sb%0d",sb_index),"../th/pmap/memory_map/name_addr_mask_cpu.txt");
+        ahb_cb[sb_index]= new(ahb_sb[sb_index],$psprintf("hisi_amba_ahb_cb%0d",sb_index));
+        uvm_callbacks #(ahb_driver)::add(ahb_mst_if_agent[sb_index].ahb_drv,ahb_cb[sb_index]);
+    end
+
+  foreach(axi_sb[sb_index])
+     if(this.linkbench_cfg.axi_mst_if_agent_sw[sb_index] == stb_dec::ON) begin
+        axi_sb[sb_index] = new($psprintf("axi_sb%0d",sb_index));
+        axi_cb[sb_index]= new(axi_sb[sb_index],$psprintf("hisi_amba_axi_cb%0d",sb_index),axi_dec::axi_data_bus_width_enum'(this.linkbench_cfg.axi_mst_if_agent_cfg[sb_index].data_width));
+        uvm_callbacks #(axi_driver)::add(axi_mst_if_agent[sb_index].axi_mst_drv,axi_cb[sb_index]);
+     end
+
+`uvm_info(get_type_name(), "connect_phase() finished", UVM_HIGH);
+endfunction
+
+
+
+
+                                         //end_of_elaboration ,reset,configure等phase不做其他设计
