@@ -67,7 +67,7 @@ function void axi2axi_env::build_phase(uvm_phase phase);
     if(!cfg.randomize())begin//先执行随机化，再将返回值取反。若随机化成功则返回1.
         `uvm_fatal (get_type_name(), "build_phase(): Unable to randomize env_cfg in env");
         end
-    end
+    end//env的build_phase：首先通过type_id创建当前环境的配置类，并且随机化该配置类，使配置类中相关function配置的axi agent相关位宽等配置生效。
 
     //regmodel new
   regmodel = ral_block_KTP_CFG_REG::type_id::create("reg_model",this);//寄存器模型已经注册到工厂，通过type_id创建寄存器模型对象，挂到UVM树下；可以override
