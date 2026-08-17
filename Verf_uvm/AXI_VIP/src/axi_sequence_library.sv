@@ -188,6 +188,7 @@ end
 endtask:axi_burst_write
 
 // axi_write,transmit addr/data/aid/burst_type/burst_length/burst size and other signals,with expect_resp
+//sequence作为激励生成器，输入uvm_sequencer作为仲裁调度器
 task axi_sequence::axi_write(input uvm_sequencer #(uvm_sequence_item) sqr,
     input bit [`AMBA_SEQUENCE_AXI_MASTER_ID_PORT_WIDTH - 1:0] id,
     input bit [`AMBA_SEQUENCE_AXI_BURST_PORT_WIDTH - 1:0] burst,
@@ -210,8 +211,8 @@ axi_xaction trans;
 uvm_sequence_item trans_item;
 trans = axi_xaction::type_id::create("trans");
 
-`uvm_create_on(trans, sqr)
-
+`uvm_create_on(trans, sqr)  //宏展开：  trans.set_sequencer(sqr); 设置目标Sequencer     trans.set_parent_sequence(this);  设置父Sequence（用于response路由 
+//关闭随机化，精确控制每个信号；success捕获随机化是否成功
 trans.m_envResp.rand_mode(0);
 trans.m_bvvData.rand_mode(0);
 trans.m_bvvWstrb.rand_mode(0);
@@ -234,23 +235,26 @@ success = trans.randomize with {
     trans.m_bvQos == qos;
     trans.m_bvAuser == user;
 };
+//动态数组分配与数据填充
 trans.m_envResp = new[1];
 trans.m_bvvData = new[length+1];
 trans.m_bvvWstrb = new[length+1];
 
-trans.m_enReadExp = care_resp;
-trans.m_envReadExpResp[0] = axi_dec::axi_resp_type_enum'(expect_resp);
+trans.m_enReadExp = care_resp;//是否关心响应
+trans.m_envReadExpResp[0] = axi_dec::axi_resp_type_enum'(expect_resp);//期盼响应的类型
 foreach(data[i]) begin
     trans.m_bvvData[i] = data[i];
 end
 foreach(strb[i]) begin
     trans.m_bvvWstrb[i] = strb[i] ;
 end
-trans.seq_need_resp = 1;
-`uvm_send(trans);
-get_response(req,trans.get_transaction_id); 
+trans.seq_need_resp = 1;//要求Driver返回response
+`uvm_send(trans); //宏展开：  start_item(trans);申请总线+仲裁   finish_item(trans);交给driver
+get_response(req,trans.get_transaction_id); //获取响应，匹配事务id
 endtask:axi_write
 
+//宏解析： `uvm_do = create + randomize + send      `uvm_send = only send(not create and randomize)
+    
 // axi_read, transmit addr/aid/burst_type/burst_length/burst_size and other signals, with expect_resp
 task axi_sequence::axi_read(input uvm_sequencer #(uvm_sequence_item) sqr,
                             input bit [AMBA_SEQUENCE_AXI_MASTER_ID_PORT_WIDTH - 1:0] id,
