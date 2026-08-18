@@ -116,5 +116,19 @@ uvm_void  ←── 最顶层抽象基类，无任何成员
       `uvm_object_utils_end
 
 
+19. override机制是什么？分为哪几类？应用场景有哪些？
+   （1）不修改原有验证环境代码，通过 UVM Factory，把原本要创建的类替换成另一个派生类。
+       eg: 原有创建了: base_driver drv;  drv = base_driver::type_id::create("drv", this);
+           若配置了: base_driver::type_id::set_type_override(error_inject_driver::get_type());
+           那么Factory机制会在创建前查找该组件有没有被override，如果被重载，实际创建的对象就是error_inject_driver
+    (2) 分类：Type Override 和 Instance Override
+   Type Override: 某一种类型，全局替换成另一种类型。比如将原有的driver修改为错误注入driver(Callback)，上述例子就是。
+       Instance Override: 只替换某一个特定层次路径下的实例。
+       eg: base_driver::type_id::set_inst_override(error_driver::get_type(),"env.master_agent.drv");  //只替换了master_agent下的drv
+   （3）错误注入测试或者想更改其中过一个Agent
+
+20. 
+      
+
    
 
