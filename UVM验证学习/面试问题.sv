@@ -126,7 +126,8 @@ uvm_void  ←── 最顶层抽象基类，无任何成员
        Instance Override: 只替换某一个特定层次路径下的实例。
        eg: base_driver::type_id::set_inst_override(error_driver::get_type(),"env.master_agent.drv");  //只替换了master_agent下的drv
    （3）错误注入测试或者想更改其中过一个Agent
-
+注意：override必须在组件创建之前，否则重载不生效。
+   
 20. 
       
 
