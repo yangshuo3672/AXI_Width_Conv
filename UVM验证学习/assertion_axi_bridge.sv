@@ -1,3 +1,9 @@
+AXI桥检查分类：1. 握手协议  
+              2. 地址合规：地址对齐、禁止跨4K边界
+
+
+
+
 （一）断言的分类
      1. 立即断言，具有非时序特性，需要放在过程块中，比如initial,always.task,function等
         比如：
@@ -157,14 +163,13 @@ else
 
 （七）4K边界禁止跨越
           // AXI协议规定一个burst不能跨越4KB地址边界（页边界保护）
-     property p_no_4kb_cross;
-         int addr_end;
-        @(posedge aclk) disable iff (!aresetn)
-         $rose(awvalid) |-> (
-              addr_end = awaddr + ((awlen + 1) << awsize),   // a*2^b = a << b
-             (awaddr[31:12] == addr_end[31:12])  // 同一4KB页
-         );
-     endproperty
+property p_no_4kb_cross;
+    @(posedge aclk) disable iff (!aresetn)
+    $rose(awvalid) |-> 
+        (awaddr[31:12] == (awaddr + ((awlen + 1) << awsize))[31:12]);
+endproperty
+assert property (p_no_4kb_cross)
+else $error("[AXI_ERR] Time=%0t: Burst crosses 4KB boundary! awaddr=0x%08h", $time, awaddr);
 
 
 
