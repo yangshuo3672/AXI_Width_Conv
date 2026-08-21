@@ -66,5 +66,116 @@
         IMP（Implementation）:最终执行方，实现了PORT发起操作的具体功能，例如一个put操作最终会调用IMP所在组件的put任务或函数
         连接关系：PORT->EXPORT->IMP 其中EXPORT是可选的
       
-         
+   2.2 定义通信方式
+        
+         uvm_blocking_put_port:      阻塞式发送，调用其put（task）任务发送一个事务，改事务会一直阻塞，知道接收方成功接收。
+         uvm_nonblocking_put_port:   非阻塞式发送，调用其try_put（function）函数尝试发送，立即返回是否成功。
+         uvm_blocking_get_port：     阻塞式获取，调用get（task）获取一个事务，该事务一直阻塞，知道有数据可用。
+         uvm_nonblocking_get_port:   非阻塞式获取，调用try_get（function）函数尝试获取，立即返回是否成功及数据
+         uvm_blocking_get_peek_port/uvm_nonblocking_get_peek_port: 在get的基础上增加peek能力，即获取数据但不从队列移除
+         uvm_analysis_port:          广播式发送，调用write（function）函数发送一个事务，所有连接到该端口的IMP都会接收到一份拷贝。这是一对多通信的关键。
 
+   2.3 一对一通信实战：从Monitor到Scoreboard
+      （1）第一步：定义通信事务（transcation），TLM通信的数据单元，继承自sequence_item
+            class my_transaction extends uvm_sequence_item;
+                 rand bit [31:0] addr;
+                 rand bit [31:0] data;
+                 // ... 其他字段和约束、方法
+                 `uvm_object_utils(my_transaction)
+            endclass
+      （2）第二步：在发送方（Monitor）定义PORT
+             class my_monitor extends uvm_monitor;
+                 // 声明一个阻塞式put端口，参数为事务类型和本组件类型
+                   uvm_blocking_put_port #(my_transaction) put_port;
+ 
+                   function new(string name, uvm_component parent);
+                     super.new(name, parent);
+                     put_port = new("put_port", this); // 在构造函数中创建
+                   endfunction
+                  
+                   task main_phase(uvm_phase phase);
+                     my_transaction tr;
+                     forever begin
+                       // ... 采集数据到 tr
+                       `uvm_info("MON", $sformatf("Captured transaction: addr=0x%0h, data=0x%0h", tr.addr, tr.data), UVM_MEDIUM)
+                       // 发起阻塞式put操作。此任务会等待，直到Scoreboard侧的put任务完成。
+                       put_port.put(tr);
+                     end
+                   endtask
+            endclass
+            //使用阻塞式blocking_put：对于Monitor到Scoreboard的通信，我们通常希望数据流是受控的，如果Scoreboard处理较慢，Monitor应该等待，避免数据丢失。
+       （3）第三步：在接收方（Scoreboard）定义IMP并实现put方法
+            class my_scoreboard extends uvm_scoreboard;
+                // 声明一个阻塞式put实现端口
+                uvm_blocking_put_imp #(my_transaction, my_scoreboard) put_imp;
+               
+                function new(string name, uvm_component parent);
+                  super.new(name, parent);
+                   put_imp = new("put_imp", this); //函数中创建new
+                endfunction
+               
+                // 必须实现与端口类型对应的任务。函数签名是固定的。
+                task put(my_transaction tr);
+                  `uvm_info("SCB", $sformatf("Received transaction: addr=0x%0h, data=0x%0h", tr.addr, tr.data), UVM_MEDIUM)
+                  // 在这里进行数据比对、检查等操作
+                  compare_and_check(tr);
+                endtask 
+                // 其他的函数和任务...
+            endclass
+         （4）第四步：在顶层env连接PORT和IMP（必须在connect_phase中连接）
+             class my_env extends uvm_env;
+                  my_monitor monitor;
+                  my_scoreboard scoreboard;
+ 
+                  function void build_phase(uvm_phase phase);
+                     super.build_phase(phase);
+                     monitor = my_monitor::type_id::create("monitor", this);
+                     scoreboard = my_scoreboard::type_id::create("scoreboard", this);
+                  endfunction
+                  
+                  function void connect_phase(uvm_phase phase);
+                     super.connect_phase(phase);
+                     // 将monitor的port连接到scoreboard的imp
+                     monitor.put_port.connect(scoreboard.put_imp);
+                  endfunction
+            endclass
+
+            connect()方法在两者之间建立了通道，当monitor.put_port.put(tr)被调用时，这个调用最终会通过这个通道，最终执行scoreboadr.put(tr)任务
+            省略EXPORT，在这个例子中，PORT直接连接到了IMP，如果Scoreboadr被封装到一个更底层的子环境中，那么该子环境还需要定义一个EXPORT来向上暴露这个IMP，福环境再连接PORT到这个EXPORT。
+         EXPORT起到了一个接口适配器或端口转发器的作用。
+
+  2.4 一对多广播通信：Analysis端口的威力
+        在很多场景下，一个数据源需要广播给多个消费者。例如，Monitor采集到的事务（transaction），可能需要同时送给Scoreboard进行比对、送给覆盖率收集器（Coverage Collector）收集功能覆盖率、
+    送给日志记录器（Logger）打印详细信息。如果为每个消费者都建立一对一的put连接，代码会非常冗余，且数据源需要知道所有消费者的信息，耦合度高。
+        UVM提供了uvm_analysis_port 和 uvm_analysis_imp 专门用于这种一对多、非阻塞、广播式的通信。    
+            
+      2.4.0  Analysis端口的特点：
+               非阻塞：analysis_port.write() 是一个函数（function），调用它会立即返回。发送方不会等待接收方处理完毕。
+               广播 ：一个 analysis_port 可以连接到多个 analysis_imp 。调用一次 write() ，所有连接的IMP都会收到该事务的一份拷贝 。
+               单向推送 ：数据流是单向的，从 analysis_port 到 analysis_imp 。IMP不能通过这个端口反向请求数据。
+                  
+      2.4.1 实战：假设我们有Monitor作为数据源，Scoreboard和Coverage Collector作为消费者。
+            （1）第一步：在数据源（Monitor）定义Analysis Port
+                 class my_monitor extends uvm_monitor;
+                   // 声明分析端口
+                    uvm_analysis_port #(my_transaction) mon_analy_port;
+ 
+                     function new(string name, uvm_component parent);
+                       super.new(name, parent);
+                       mon_analy_port = new("mon_analy_port", this);
+                     endfunction
+ 
+                     task main_phase(uvm_phase phase);
+                       my_transaction tr;
+                       forever begin
+                         // ... 采集数据到 tr
+                         `uvm_info("MON", $sformatf("Broadcasting transaction"), UVM_MEDIUM)
+                         // 广播数据。这是一个函数调用，立即返回。
+                         mon_analy_port.write(tr);
+                       end
+                     endtask
+                   endclass 
+            （2）第二步：在消费者（SB和Coverage Collector）定义Analysis IMP并实现write方法
+                  
+           
+            
