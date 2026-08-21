@@ -148,6 +148,23 @@ else
            $time, awvalid, awready);
 
 
+（六）burst起始地址必须对其到传输大小（AxSize）的边界
+     // AWADDR 必须对齐到 2^AWSIZE
+     assert property (@(posedge aclk) disable iff (!aresetn)
+           $rose(awvalid) |-> (awaddr & ((1 << awsize) - 1)) == 0)
+     else $error("AWADDR not aligned to AWSIZE");
+     //比如Axsize是0x02，代表本次burst传输每一beat携带的数据大小是2^2=4Byte，因为每一位地址信息携带1个Byte，因此起始地址应该为4的整数倍，即只能为0x00,0x04，0x08...
+
+（七）4K边界禁止跨越
+          // AXI协议规定一个burst不能跨越4KB地址边界（页边界保护）
+     property p_no_4kb_cross;
+         int addr_end;
+        @(posedge aclk) disable iff (!aresetn)
+         $rose(awvalid) |-> (
+              addr_end = awaddr + ((awlen + 1) << awsize),   // a*2^b = a << b
+             (awaddr[31:12] == addr_end[31:12])  // 同一4KB页
+         );
+     endproperty
 
 
 
