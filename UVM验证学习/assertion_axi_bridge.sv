@@ -166,7 +166,7 @@ else
 property p_no_4kb_cross;
     @(posedge aclk) disable iff (!aresetn)
     $rose(awvalid) |-> 
-        (awaddr[31:12] == (awaddr + ((awlen + 1) << awsize))[31:12]);
+      (awaddr[31:12] == (awaddr + ((awlen + 1) << awsize)) & 32'hffff_f000 );
 endproperty
 assert property (p_no_4kb_cross)
 else $error("[AXI_ERR] Time=%0t: Burst crosses 4KB boundary! awaddr=0x%08h", $time, awaddr);
