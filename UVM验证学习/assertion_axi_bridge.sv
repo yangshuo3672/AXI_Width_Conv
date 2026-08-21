@@ -37,6 +37,17 @@
 assert property (@(posedge aclk) disable iff (!aresetn)
     $rose(awvalid) |-> awvalid throughout awready[->1]);
 
+另一种写法：
+     property p_awvalid_hold_until_ready;
+        @(posedge aclk) disable iff (!aresetn)
+        $rose(awvalid) |-> (awvalid throughout awready[->1]);
+     endproperty
+
+     assert property (p_awvalid_hold_until_ready)
+        else begin
+        $error("[AXI_SVA_ERR] Time=%0t: AWVALID deasserted before AWREADY asserted! awvalid=%b, awready=%b", $time, awvalid, awready);
+     end
+          
 // AWLEN 范围检查（AXI4 burst最大16 beat）
 assert property (@(posedge aclk) disable iff (!aresetn)
     awvalid |-> awlen <= 8'd15);
