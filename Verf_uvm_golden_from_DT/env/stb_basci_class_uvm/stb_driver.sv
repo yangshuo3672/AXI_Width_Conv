@@ -1,4 +1,9 @@
-class stb_driver #(type VIF = int) extends uvm_driver #(uvm_sequence_item);//参数化Driver基类模版
+class stb_driver #(type VIF = int) extends uvm_driver #(uvm_sequence_item);
+     
+     //参数化Driver基类模版
+     //注意：VIF属于传递进来的参数句柄，比如在子类继承的时候，有一个class my_apb_driver extends stb_driver#(virtual apb_interface);
+     //具体应用可见APB VIP Driver
+     //这个stb平台的代码主要为后续Driver组件开发提供基类，完成虚拟接口配置，out_port广播口例化等重复和重要操作，后续组件开发只需要将接口句柄传递进去即可，不需要在agent代码中进行配置
      
   `uvm_component_param_utils(stb_driver #(VIF))//参数化的component的工厂注册，与 `uvm_component_utils作区分
      
