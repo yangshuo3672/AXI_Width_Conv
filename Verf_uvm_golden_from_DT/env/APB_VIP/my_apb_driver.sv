@@ -339,4 +339,69 @@ task my_apb_driver::do_read(ref apb_xaction tr);
             `uvm_error(get_type_name(),$sformatf("rdata has X state ,rdata=%h",tr.data));
         end
     end
-endtask
+    if(cfg.resp_check_enable == 1'b1)begin
+        if(tr.resp == 1'b0)begin
+            `uvm_info(get_type_name(),"resp is OK!!!",UVM_HIGH);
+        end
+        else begin
+            `uvm_error(get_type_name(),$sformatf("resp is err,resp=%h",tr_resp));
+        end
+    end
+endtask:do_read
+
+// ==================================================
+// ---------------------do_write task-----------------`define APB_MASTER_IF this.bus.Master.master_cb
+// ==================================================
+
+task my_apb_driver::do_write(apb_xaction tr);
+    int cnt_write;
+    // Drive Control bus
+    `APB_MASTER_IF.PAddr <= tr.addr & addr_range;
+    `APB_MASTER_IF.PWData <= tr.data & data_range;
+    `APB_MASTER_IF.PStrb <= tr.strb;
+    `APB_MASTER_IF.PWrite <= 1'b1;
+    `APB_MASTER_IF.PSel <= 1'b1;
+    `APB_MASTER_IF.PEnable<= 1'b0;
+    `APB_MASTER_IF.PProt <= tr.prot;
+    `APB_MASTER_IF.PAuser <= tr.m_bvAuser;
+    `APB_MASTER_IF.PWuser <= tr.m_bvWuser;
+    `APB_MASTER_IF.PQos <= tr.m_bvQos;
+    `APB_MASTER_IF.PGrpid <= tr.m_bvGrpid;
+    `APB_MASTER_IF.PVmid <= tr.m_bvVmid;
+    `APB_MASTER_IF.PMpubypass <= tr.m_bvMpubypass;
+    `APB_MASTER_IF.PSnoop <= tr.m_bvSnoop;
+    `APB_MASTER_IF.PDomain<= tr.m_bvDomain;
+
+    tr.addr = tr.addr & addr_range;
+    `uvm_do_callbacks(my_apb_driver,apb_driver_callbacks, master_addr_tx(this, tr));
+
+    cnt_write = 0;
+    // Assert Penable
+    @( `APB_MASTER_IF);
+    `APB_MASTER_IF.PEnable <= 1'b1;
+
+    do begin
+        @( `APB_MASTER_IF);
+        cnt_write++;
+        `uvm_info(get_type_name(), $sformatf("cnt_write=%0d, pready_cnt=%0d", cnt_write, cfg.pready_cnt), UVM_HIGH);
+        if(cnt_write == cfg.pready_cnt) begin
+            `uvm_error(get_type_name(), $sformatf("do_read():Has not wait for pready in %0d cycles", cfg.pready_cnt));
+            break;
+        end
+    end while ( `APB_MASTER_IF.PReady !== 1'b1);
+    `APB_MASTER_IF.PEnable <= 1'b0;
+    `APB_MASTER_IF.PSel <= 1'b0;
+    tr.resp = `APB_MASTER_IF.PSlvErr;
+    tr.data = tr.data & data_range;
+
+    if(cfg.resp_check_enable == 1'b1) begin
+        if(tr.resp)begin
+            `uvm_error(get_type_name(),$sformatf("resp is err ,resp=%h",tr.resp));
+        end
+        else begin
+            `uvm_info(get_type_name(), "resp is OK!!!", UVM_HIGH);
+        end
+    end
+endtask: do_write
+              
+`endif
