@@ -1,11 +1,12 @@
 class stb_monitor #(type VIF = int) extends uvm_monitor;
     //传递VIF，子类继承该组件时，直接传递给接口类
-  
-   `uvm_component_param_utils(stb_monitor #(VIF))
+    //例如：class apb_monitor extends stb_monitor#(virtual apb_interface)
+    
+    `uvm_component_param_utils(stb_monitor #(VIF))  //带参数的component注册到工厂
 
-   protected VIF bus;          ///<! Interface of monitor
-   uvm_analysis_port #(uvm_sequence_item) out_port;  ///<! port of monitor to connect outside component such as rm
-   uvm_sequence_item proto;    ///<! Prototype sequence item
+   protected VIF bus;                                 ///<! Interface of monitor
+   uvm_analysis_port #(uvm_sequence_item) out_port;   ///<! port of monitor to connect outside component such as rm
+   uvm_sequence_item proto;                           ///<! Prototype sequence item；用户自定义的原型句柄
 
    extern function new(string name, uvm_component parent);
    extern virtual function void build_phase(uvm_phase phase);
