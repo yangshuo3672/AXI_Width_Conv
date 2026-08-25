@@ -10,6 +10,14 @@
    （4）形成测试点清单：编号，名称，来源需求，测试目标，前置条件，预期结果
 
 3. 讲解印象最深的一个测试用例？debug经历
+
+4. 验证中的OPP（Object-Oriented-Programming 面向对象编程）思想？如何理解？ 封装、继承、多态
+   通过class将多个周期的信号变化抽象成一个transaction
+   通封装将Driver、Monitor、Scoreboard、RM完全隔离，
+   多态与回调：通过继承通用骨架，子类只写差异化函数；工厂机制和重载实现组件灵活替换
+   Phase：
+     
+     
  
 
 
