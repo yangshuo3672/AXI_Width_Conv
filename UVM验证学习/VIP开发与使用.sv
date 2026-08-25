@@ -49,6 +49,154 @@
 
 
 
-（二） 海思AXI VIP内容
+（二） 海思AXI VIP Feature特性
+      2.1 协议特性 Protocal Features
+           AX3/4,原子操作，outstanding深度可配，interleaving深度可配，Ordering Check，4K边界地址检查，跨4K边界拆分，排他操作，拍他深度可配，
+           每条通道valid-ready延迟可控，安全模式和非安全模式检查
+      2.2 环境特性
+           支持工作模式MASTER，SLAVE，MASTER_NO_MONITOR,ONLY_MONITOR,REG_MASTER_NO_MONITOR,REG_MASTER
+           封装基本读写操作函数
+           支持AXI的背靠背测试
+           支持功能覆盖率
+           支持多种类型的callbacks函数
+           支持prot供用户环境连接
+
+（三）VIP集成
+      3.1 env环境集成
+           （1）VIP声明：一个master 一个slave
+           
+            stb_dec::interface_agent_work_mode_e  axi_slv_if_agent_work_mode[]; ///!< The apb_if_agent work mode 工作模式数组声明，赋值在下方，创建VIP时江该配置传递给VIP的work_mode参数
+            stb_dec::interface_agent_work_mode_e  axi_mst_if_agent_work_mode[]; ///!< The axi_if_agent work mode
+           
+            axi_interface_agent   axi_mst_if_agent[];
+            axi_interface_agent   axi_slv_if_agent[];
+            axi2axi_env_cfg       cfg;
+            axi2axi_checker       checker_inst;
+            axi2axi_rm            rm;
+            uvm_tlm_analysis_fifo #(uvm_sequence_item)  axi_mst_if2rm_port_fifo;   //Master Monitor → RM 的 FIFO
+            uvm_tlm_analysis_fifo #(uvm_sequence_item)  axi_slv_if2rm_port_fifo;   //Slave Monitor → RM 的 FIFO
+            uvm_tlm_analysis_fifo #(uvm_sequence_item)  rm_out_port_fifo[2];
+
+          foreach (axi_mst_if_agent_work_mode[i])
+               this.axi_mst_if_agent_work_mode[i] = stb_dec::MASTER;
+          foreach (axi_slv_if_agent_work_mode[i])
+               this.axi_slv_if_agent_work_mode[i] = stb_dec::SLAVE;
+         （2）VIP实例化 //创建、实例化VIP
+          foreach(this.linkbench_cfg.axi_mst_if_agent_sw[i]) begin
+              if(this.linkbench_cfg.axi_mst_if_agent_sw[i] == stb_dec::ON) begin
+                  this.axi_mst_if_agent[i] = axi_interface_agent::type_id::create($sformatf("axi_mst_if_agent[%0d]", i), this);
+                  this.axi_mst_if_agent[i].work_mode = this.linkbench_cfg.axi_mst_if_agent_work_mode[i];
+                  this.axi_mst_if_agent[i].cfg = this.linkbench_cfg.axi_mst_if_agent_cfg[i];
+                  `uvm_info(get_type_name(), $sformatf("build_phase():axi_mst_if_agent[%0d] has been constructed", i), UVM_HIGH);
+              end
+          end
+         （3）VIP port连接
+           //master_vip.mon_port--->if2rm_fifo--->rm.in_port[0]--->rm_out_port_fifo[0]--->checker_inst.in_port[0];之间都是阻塞传递
+           this.axi_mst_if_agent[0].mon_port.connect(this.axi_mst_if2rm_port_fifo.analysis_export);//master vip--->if2rm_fifo
+           this.rm.in_port[0].connect(this.axi_mst_if2rm_port_fifo.blocking_get_peek_export);//if2rm_fifo--->rm.in_port[0]
+           this.rm.out_port[0].connect(this.rm_out_port_fifo[0].blocking_put_export);//rm.out_port[0]--->rm_out_port_fifo[0]
+           this.checker_inst.in_port[0].connect(this.rm_out_port_fifo[0].blocking_get_peek_export);//rm_out_port_fifo[0]--->checker_inst.in_port[0]
+
+           //传递与master一致，rm和checker端口改为[1]即可
+           this.axi_slv_if_agent[0].mon_port.connect(this.axi_slv_if2rm_port_fifo.analysis_export);
+           this.rm.in_port[1].connect(this.axi_slv_if2rm_port_fifo.blocking_get_peek_export);
+           this.rm.out_port[1].connect(this.rm_out_port_fifo[1].blocking_put_export);
+           this.checker_inst.in_port[1].connect(this.rm_out_port_fifo[1].blocking_get_peek_export);
+
+(四)激励发送
+   步骤：axi_sequence声明-----axi_sequence实例化,使用type_id创建-----通过axi_sequence中的task发送激励
+
+（五）xaction激励类介绍
+     
+     什么是反压：代表valid已经来了，我想要valid等多久？
+     
+     激励配置包括读写指示，addr、id、size、burst等端口信号
+     
+     Avalid_Wvalid_Delay: 写命令和写数据之间的延迟，正数命令在前。
+     
+     Next_Avlid_Delay: 连续两个写命令（读命令）之间的延迟。也就是master发起读写命令之间的延迟
+     Next_Wvalid_Delay: 连续两个写数据之间的延迟。
+     
+     Bvalid_Bready_Delay: Bready反压的延迟。想要此参数生效需要修改axi_driver_cfg中的bready信号默认值改为0
+     Bready_Delay: 从Bresp握手到下一次Bready的延迟。
+     Rvalid_Rready_Delay: 各拍Rready反压Rvalid的延迟。想要此参数生效需要修改axi_driver_cfg中的rready信号默认值改为0
+     Ready_Delay: 从各拍Rresp握手到下一次Ready的延迟。
+     Avlid_Aready_Delay：Axready反压Axvalid的延迟。
+     Default_Aready_Delay: 从Axaddr握手到下一次Wready的延迟。
+     Wvalid_Wready_Delay: 各派Wready反压Wvalid的延迟。
+     Default_Wready_Delay: 从Wdata握手到下一次Wready的延迟。
+
+     Write_Bvalid_Delay: 从收到写命令和写数据到给出Bresp的延迟。
+     Address_Rvalid_Delay: 从收到读命令到给出第一拍Rdata的延迟。
+     Next_Rvalid_Delay:连续两拍读数据之间的延迟; 也就是slave发起两笔有效返回数据之间的延迟。
+
+     注意：关于ready的所有延迟，均也有axi_driver_cfg或者axi_slave_driver_cfg对各信号的ready默认值决定
+
+  （六）配置类介绍
+     6.1 axi_interface_agent_cfg配置项
+         addr、id、data位宽，outstanding深度，interleaving深度，是否有delay信号使能总开关，
+         out_of_rresp、out_of_bresp：读写响应乱序开关
+         所有的检查总开关，
+         读操作4K边界检查开关、读wrap操作时length检查开关，读地址非对齐检查开关，exclusive非法检查开关
+         写操作4K边界检查开关、写wrap操作时length检查开关，写地址非对齐检查开关
+         INCR操作协议检查开关，FIX操作协议检查开关，WRAP操作协议检查开关，Wstrb检查开关
+         高性能driver使能
+         跳过4K边界拆分使能
+
+     6.2 axi_driver_cfg配置项
+         aw和w通道对其开关：关闭时根据配置的delay来发送
+         Bready和Rready默认值设置
+         ainfo_hold_when_invalid: A通道valid无效时信号保持开关
+         ainfo_random_when_invalid: A通道valid无效时信号随机开关
+         winfo_random_when_invalid: W通道valid无效时信号随机开关
+         MaxDelay： 读写操作timeout时间，从发出操作到返回的最大时间
+         Inject_awlen_error_en: awlen错误注入使能开关，可在callback中注入awlen异常场景
+
+     6.3 axi_slave_driver_cfg配置项
+         rresp_order_en、bresp_order_en: R、B通道的resp顺序返回；优先级高于out_of_rresp和out_of_bresp
+         Awready、Arready、Wready默认值设置
+         mem_type: slave_mem的类型。0表示在FIXED操作时，mem为fifo模式；1表示在FIXED操作时，mem不为fifo模式
+         binfo、rinfo等在valid无效是通道上其他信号的随机开关
+
+     6.4 aix_monitor_cfg配置项
+         主要是检查开关，其中包括：
+         X态检查使能、rdata X态检查使能
+         所有检查开关使能
+         读操作4K边界检查使能
+         读wrap操作length检查使能
+         读操作地址非对齐检查使能
+         写操作。。。。
+         功能覆盖率使能开关
+         最大timeout使能开关
+         wlast、rlast检查开关
+
+
+     （七）callback介绍
+           VIP提供了很多callback接口方便用户使用
+           7.1 axi_driver_callback
+               （1）axi_driver刚从port获得aix_xaction后，通过该callback可以在命令发出前对其做出修改，可对各种握手delay作出修改。
+
+               （2）错误注入：Driver驱动burst length到总线awlen上之前，在该callback可以注入awlen错误，构造length和wdata拍数不符合协议场景
+
+           7.2  axi_slave_driver_callback
+                (1) axi_slave_driver刚开始采集命令，在此callback中可修改Ready的Delay值
+                (2) 已经采完一个命令，可修改ready delay值
+                (3) 即将返回响应， 可控制响应时OKAY还是ERROR，也可以修改响应通道握手的valid delay值     
+
+     总结：callback可以在driver已经采样完成之后，将想要修改的值修改，并且可以刻意制造异常场景用于检测
+     
+
+
+
+
+
+
+
+
+
+
+
+
+           
       
        
