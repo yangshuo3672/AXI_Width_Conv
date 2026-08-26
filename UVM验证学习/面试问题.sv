@@ -17,10 +17,26 @@
    多态与回调：通过继承通用骨架，子类只写差异化函数；工厂机制和重载实现组件灵活替换
    Phase：
       （1）继承特性：extends
-      eg: class stb_interface_agent #(type VIF = int) extends uvm_agent
-         
-     
-     
+      
+      eg: class stb_interface_agent #(type VIF = int) extends uvm_agent;
+                uvm_sequencer #(uvm_sequence_item)    sqr;
+                `uvm_field_int(sqr_sw, UVM_ALL_ON)
+          endclass
+          function void stb_interface_agent::build_phase(uvm_phase phase)
+                if(this.sqr == null && this.sqr_sw == stb_dec::ON) begin
+                   this.sqr = uvm_sequencer #(uvm_sequence_item)::type_id::create("sqr", this);
+                   `uvm_info(get_type_name(), "build_phase(): Use uvm_sequencer to generate transaction", UVM_HIGH);
+                end
+          endfunction:build_phase
+         如果一个VIP agent继承上述class
+            class axi_interface_agent extends stb_interface_agent #(virtual axi_interface);
+         在后续env环境顶层中
+               class my_env extends uvm_env;
+                  axi_interface_agent   axi_mst_if_agent[];//实例化
+          在test case中：
+             class tc_interleaving extends tc_base；
+                  //run_phase
+                u_axi_seq.axi_write(env.axi_mst_if_agent[0].sqr,id,1,wdata,addr,length.....);//可以直接调用sqr，因为继承后，子类也继承了父类的变量。
  
 
 
