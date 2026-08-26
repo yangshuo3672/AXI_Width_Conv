@@ -16,6 +16,9 @@
    通封装将Driver、Monitor、Scoreboard、RM完全隔离，
    多态与回调：通过继承通用骨架，子类只写差异化函数；工厂机制和重载实现组件灵活替换
    Phase：
+      （1）继承特性：extends
+      eg: class stb_interface_agent #(type VIF = int) extends uvm_agent
+         
      
      
  
