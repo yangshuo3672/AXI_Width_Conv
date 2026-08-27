@@ -22,8 +22,8 @@
          （1）自动bin：SV自动按位宽均分，如addr位宽为N，自动生成N个bin
          （2）用户显示自定义取值范围：bins low = {[0:100]};
           (3) 转换bin：记录状态和值得转义序列，比如bins idle_to_busy (IDLE=>BUSY);
-          (4)忽略bin：不计入覆盖率统计  ignore_bins reserved = {7,8};
-          (5)非法bin：若命中报错  illegal_bins impossible = {2'b11};
+          (4) 忽略bin：不计入覆盖率统计  ignore_bins reserved = {7,8};
+          (5) 非法bin：若命中报错  illegal_bins impossible = {2'b11};
 
 3.覆盖率收集流程
    测试点分解
@@ -49,7 +49,21 @@
       
     
 6. AXI VIP的覆盖率种类
-          
+    （1）协议层覆盖：验证AXI协议的基本规范是否被满足
+         握手信号覆盖、突发类型覆盖、突发长度覆盖、突发大小覆盖、交叉覆盖、
+    （2）事务层覆盖
+         读写事务、ID、outstanding、out-of-order、interleaving
+    （3）
+
+
+5. 交叉覆盖cross
+         coverpoint统计单个变量的分布
+         cross统计多个变量组合在一起时的分布
+
+6. 几种关键字
+         
+         
+         
           
           
        
