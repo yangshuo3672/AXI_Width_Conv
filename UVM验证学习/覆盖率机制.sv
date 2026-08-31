@@ -54,6 +54,32 @@
     （2）事务层覆盖
          读写事务、ID、outstanding、out-of-order、interleaving
     （3）
+收集的功能点：
+axi_wr_id: 验证上游写id是否能够覆盖0-8’hff
+axi_wr_addr: 验证写地址能否覆盖0-32’hfff_f7f0
+axi_wr_size: 验证写size能否覆盖4
+axi_wr_resp: 验证写响应能否覆盖okay和slverror和decerror
+axi_bresp：验证写响应返回状态
+axi_wr_ots_num: 验证写通道的outstanding能力
+axi_wr_ooo_num: 验证乱序深度
+axi_rd_id： 验证上游读id能否覆盖0-8’hff
+axi_rd_addr：验证读地址能否覆盖0-32’hffff_f7f0
+axi_rd_size：验证读size能否覆盖4
+axi_rd_resp：验证读响应能否覆盖okay和error
+axi_rresp：验证读响应返回的状态
+axi_rd_ots_num：验证写通道的outstanding能力
+axi_rd_ooo_num：验证乱序深度
+mst_awvalidwvaliddelay：验证上游aw和w通道之间的相位关系
+mst_awvalidawreadydelay：验证上游aw通道中valid对ready的反压延时
+mst_arvalidarreadydelay：验证上游ar通道中valid对ready的反压延时
+mst_bvalidbreadydelay：验证上游b通道中valid对ready的反压延时
+slv_awvalidwvaliddelay：验证下游aw和w通道之间的相位关系
+slv_awvalidawreadydelay：验证下游aw通道中valid对ready的反压延时
+slv_arvalidarreadydelay：验证下游ar通道中valid对ready的反压延时
+slv_bvalidbreadydelay：验证下游b通道中valid对ready的反压延时
+
+
+   
 
 
 5. 交叉覆盖cross
