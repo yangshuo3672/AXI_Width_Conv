@@ -110,12 +110,24 @@ sequence                    sequencer                    driver
 
 
 5.Virtual Sequence 和 Virtual Sequencer 是什么？为什么需要它们？
-    virtual sequence 本身通常不直接产生 transaction，而是负责协调多个 interface 上的普通 sequence。
+    virtual sequencer本身通常不直接产生transaction，而是负责协调多个interface上的普通sequence。
+    （1） virtual sequencer本身不直接与任何物理接口（driver）连接，因此它不产生真实的时序信号。
+          它的内部只包含各个子agent的物理sequencer的句柄，为virtual sequence提供访问各个sequencer的途径。
+          例如：class axi_virtual_sequencer extends uvm_sequencer;
+                    axi_master_sequencer    m_master_seqer; // 指向上游128-bit主控
+                    axi_slave_sequencer     m_slave_seqer;  // 指向下游64-bit从机
+                    // 可能还有时钟/复位相关的sequencer
+                endclass
+     （2）virtual sequence
+         派生自uvm_sequence，但运行在virtual sequencer上
+         它的核心作用是通过p_sequencer（指向Virtual Sequencer的指针）拿到各个Physical Sequencer的句柄，然后派生（fork）子序列（Child Sequence）到这些Physical Sequencer上去执行。
+    （3）作用
+         在没有Virtual机制的环境里，如果顶层Test想要同时控制Master发送数据、Slave产生反压，它必须同时拿到Master和Slave的Sequencer，并分别启动Sequence。这会导致测试用例代码极度冗余，且协调时序极难控制。
 
+6. 多个 sequence 同时启动在一个 sequencer 上时，怎么决定谁先发送？ ---- sequencer仲裁机制
+   （1）使用仲裁方法：
 
-
-6. 多个 sequence 同时启动在一个 sequencer 上时，怎么决定谁先发送？
-这是 sequencer 仲裁机制。
+     
 
 
 
