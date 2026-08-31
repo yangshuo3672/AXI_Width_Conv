@@ -126,6 +126,20 @@ sequence                    sequencer                    driver
 
 6. 多个 sequence 同时启动在一个 sequencer 上时，怎么决定谁先发送？ ---- sequencer仲裁机制
    （1）使用仲裁方法：
+SEQ_ARB_PRIORITY	  优先级仲裁（默认）	优先级数值
+SEQ_ARB_FIFO	      先进先出	启动顺序
+SEQ_ARB_WEIGHTED	  权重仲裁	请求次数
+SEQ_ARB_RANDOM	    随机仲裁	随机选择
+SEQ_ARB_STRICT_RANDOM	严格随机	随机选择（平均分配）
+ （2）指定优先级：
+ // 启动时指定优先级（数字越大优先级越高）
+seq_A.start(sequencer, this, 10);  // 优先级10
+seq_B.start(sequencer, this, 5);   // 优先级5
+seq_C.start(sequencer, this, 20);  // 优先级20
+ （3）特殊机制：独占访问（lock与grab）
+   lock()：礼貌的“插队”。sequence调用lock()后，会等待仲裁机制正常轮到自己，一旦获得权限，就会独占sequencer直到调用unlock()释放。
+   grab()：强硬的“抢占”。sequence调用grab()后，会立即被放置在仲裁队列的最前面，在下一轮仲裁中优先获得独占权限。但注意，它不能打断正在执行的sequence。
+
 
      
 
@@ -157,12 +171,6 @@ sequence 可以被多个环境复用；
 避免 sequence 自己管理 objection 导致仿真退出难以控制。
 
 
-
-
-
-
-
-    
-4.random和postrandom  为了循环产生不同的数
+8.random和postrandom  为了循环产生不同的数
 
            
