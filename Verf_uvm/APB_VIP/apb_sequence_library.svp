@@ -1,0 +1,263 @@
+class apb_default_seq extends uvm_sequence #(apb_xaction);
+  `uvm_object_utils(apb_default_seq)
+  `uvm_declare_p_sequencer(uvm_sequencer)
+
+  extern function new(string name = "apb_default_seq");
+
+  extern virtual task pre_body();
+  extern virtual task body();
+  extern virtual task post_body();
+endclass
+
+function apb_default_seq::new(string name = "apb_default_seq");
+  super.new(name);
+endfunction
+
+task apb_default_seq::pre_body();
+  if(starting_phase != null ) begin
+    starting_phase.raise_objection(this);
+  end
+endtask: pre_body
+
+task apb_default_seq::body();
+  uvm_sequence_item trans_item;
+  repeat(100) begin
+    `uvm_do(req)
+  end
+  #1000ns;
+endtask: body
+
+task apb_default_seq::post_body();
+  if(starting_phase != null ) begin
+    starting_phase.drop_objection(this);
+  end
+endtask: post_body
+
+class apb_sequence extends uvm_sequence #(apb_xaction);
+   `uvm_object_utils(apb_sequence)
+   `uvm_declare_p_sequencer(uvm_sequencer)
+
+   extern function new(string name = "apb_sequence");
+
+   extern virtual task apb_write(uvm_sequencer#(uvm_sequence_item) sqr,
+                                 bit[2:0] prot,
+                                 bit[`APB_WSTRB_WIDTH - 1 : 0] strb,
+                                 bit[`APB_ADDR_WIDTH - 1 : 0] address,
+                                 bit[`APB_DATA_WIDTH - 1 : 0] data);
+
+   extern virtual task apb_read(uvm_sequencer # (uvm_sequence_item) sqr,
+                                bit[2:0] prot,
+                                bit[`APB_ADDR_WIDTH - 1 : 0] address,
+                                ref bit[`APB_DATA_WIDTH - 1 : 0] data);
+
+   extern virtual task apb_write_resp(uvm_sequencer#(uvm_sequence_item) sqr,
+                                      bit[2:0] prot,
+                                      bit[`APB_WSTRB_WIDTH - 1 : 0] strb,
+                                      bit[`APB_ADDR_WIDTH - 1 : 0] address,
+                                      bit[`APB_DATA_WIDTH - 1 : 0] data,
+                                      input logic[1:0] resp);
+
+   extern virtual task apb_read_resp(uvm_sequencer # (uvm_sequence_item) sqr,
+                                     bit[2:0] prot,
+                                     bit[`APB_ADDR_WIDTH - 1 : 0] address,
+                                     ref bit[`APB_DATA_WIDTH - 1 : 0] data,
+                                     input logic[1:0] resp);
+
+   extern virtual task apb_single_write(uvm_sequencer # (uvm_sequence_item) sqr,
+                                        input bit [`APB_ADDR_WIDTH - 1 : 0] address,
+                                        input bit [`APB_DATA_WIDTH - 1 : 0] data,
+                                        input bit resp,
+                                        input logic [2:0] prot,
+                                        input bit [`APB_AUSER_WIDTH - 1 :0] user);
+
+   extern virtual task apb_single_read (uvm_sequencer # (uvm_sequence_item) sqr,
+                                        input bit [`APB_ADDR_WIDTH - 1 : 0] address,
+                                        output bit [`APB_DATA_WIDTH - 1 : 0] data,
+                                        input bit resp,
+                                        input logic[2:0] prot,
+                                        input bit [`APB_AUSER_WIDTH - 1 :0] user);
+
+endclass:apb_sequence
+
+function apb_sequence::new(string name="apb_sequence");
+   super.new(name);
+endfunction
+
+task apb_sequence::apb_write(uvm_sequencer #(uvm_sequence_item) sqr,
+                             bit[2:0] prot,
+                             bit[`APB_WSTRB_WIDTH - 1 : 0] strb,
+                             bit[`APB_ADDR_WIDTH - 1 : 0] address,
+                             bit[`APB_DATA_WIDTH - 1 : 0] data);
+
+    apb_xaction trans;
+    uvm_sequence_item trans_item;
+    trans = apb_xaction::type_id::create("trans");
+    `uvm_create_on(trans, sqr);
+
+    trans.addr = address;
+    trans.data = data;
+    trans.dir = apb_dec::WRITE;
+    trans.strb = strb;
+    trans.prot = prot;
+
+    $cast(trans_item, trans);
+    `uvm_send(trans_item);
+
+endtask:apb_write
+
+task apb_sequence::apb_read(uvm_sequencer #(uvm_sequence_item) sqr,
+                            bit[2:0] prot,
+                            bit[`APB_ADDR_WIDTH - 1 : 0] address,
+                            ref bit[`APB_DATA_WIDTH - 1 : 0] data);
+
+    apb_xaction trans;
+    uvm_sequence_item trans_item;
+    trans = apb_xaction::type_id::create("trans");
+    `uvm_create_on(trans, sqr);
+
+    trans.addr = address;
+    trans.dir = apb_dec::READ;
+    trans.prot = prot;
+    trans.strb = 'h0;
+
+    $cast(trans_item, trans);
+    `uvm_send(trans_item);
+
+    $cast(trans, trans_item);
+    data=trans.data;
+
+endtask:apb_read
+
+task apb_sequence::apb_write_resp(uvm_sequencer #(uvm_sequence_item) sqr,
+    bit[2:0] prot,
+    bit[`APB_WSTRB_WIDTH - 1:0] strb,
+    bit[`APB_ADDR_WIDTH - 1 : 0] address,
+    bit[`APB_DATA_WIDTH - 1 : 0] data,
+    input logic[1:0] resp);
+
+    apb_xaction trans;
+    uvm_sequence_item trans_item;
+    trans = apb_xaction::type_id::create("trans");
+    `uvm_create_on(trans, sqr);
+
+    trans.addr = address;
+    trans.data = data;
+    trans.dir = apb_dec::WRITE;
+    trans.strb = strb;
+    trans.prot = prot;
+    trans.seq_need_resp = 1;
+
+    $cast(trans_item,trans);
+    `uvm_send(trans_item);
+
+    get_response(req, trans_item.get_transaction_id);
+    if(!$cast(trans,req)) begin
+        `uvm_fatal(get_type_name(), "Req is not apb_xaction type or its extension");
+    end
+    if(resp != trans.resp) begin
+        `uvm_error(get_type_name(), $sformatf("apb_write_resp(): The expected response is %0d, but the observed response is %0d", resp, trans.resp));
+    end
+endtask:apb_write_resp
+
+task apb_sequence::apb_read_resp(uvm_sequencer #(uvm_sequence_item) sqr,
+                                bit[2:0] prot,
+                                bit[`APB_ADDR_WIDTH - 1 : 0] address,
+                                ref bit[`APB_DATA_WIDTH - 1 : 0] data,
+                                input logic[1:0] resp);
+
+    apb_xaction trans;
+    uvm_sequence_item trans_item;
+    trans = apb_xaction::create("trans");
+    uvm_create_on(trans, sqr);
+
+    trans.addr = address;
+    trans.dir = apb_dec::READ;
+    trans.prot = prot;
+    trans.strb = 'h0;
+    trans.seq_need_resp = 1;
+
+    $cast(trans_item,trans);
+    `uvm_send(trans_item);
+
+    get_response(req, trans_item.get_transaction_id());
+    if(!$cast(trans, req)) begin
+        `uvm_fatal(get_type_name(), "Req is not apb_xaction type or its extension")
+    end
+    if(resp != trans.resp) begin
+        `uvm_error(get_type_name(), $sformatf("apb_read_resp(); The expected response is %0d, but the observed response is %0d", resp, trans.resp));
+    end
+
+    data=trans.data;
+
+endtask:apb_read_resp
+
+task apb_sequence::apb_single_write(uvm_sequencer #(uvm_sequence_item) sqr,
+                                    input bit [`APB_ADDR_WIDTH - 1 : 0] address,
+                                    input bit [`APB_DATA_WIDTH - 1 : 0] data,
+                                    input bit resp,
+                                    input logic [2:0] prot,
+                                    input bit [`APB_AUSER_WIDTH - 1 :0] user);
+
+  apb_xaction trans;
+  uvm_sequence_item trans_item;
+
+  trans = apb_xaction::type_id::create("trans");
+  `uvm_create_on(trans, sqr);
+
+  trans.addr = address;
+  trans.data = data;
+  trans.dir = apb_dec::WRITE;
+  trans.strb = {`APB_WSTRB_WIDTH{1'b1}};
+  trans.prot = prot;
+  trans.m_bvAuser = user;
+  trans.seq_need_resp = 1;
+
+  $cast(trans_item,trans);
+  `uvm_send(trans_item);
+
+  get_response(req, trans_item.get_transaction_id);
+
+  if(! $cast(trans,req)) begin
+    `uvm_fatal(get_type_name(), "Req is not apb_xaction type or its extension");
+  end
+
+  if(resp != trans.resp) begin
+    `uvm_error(get_type_name(), $sformatf("apb_single_write(): The expected response is %0d, but the observed response is %0d", resp, trans.resp));
+  end
+
+endtask: apb_single_write
+
+task apb_sequence::apb_single_read(uvm_sequencer #(uvm_sequence_item) sqr,
+                                   input bit [APB_ADDR_WIDTH - 1 : 0] address,
+                                   output bit [APB_DATA_WIDTH - 1 : 0] data,
+                                   input bit resp,
+                                   input logic[2:0] prot,
+                                   input bit [APB_AUSER_WIDTH - 1 : 0] user);
+    apb_xaction trans;
+    uvm_sequence_item trans_item;
+    
+    trans = apb_xaction::type_id::create("trans");
+    `uvm_create_on(trans, sqr);
+
+    trans.addr = address;
+    trans.dir = apb_dec::READ;
+    trans.prot = prot;
+    trans.strb = 'h0;
+    trans.m_bvAuser = user;
+    trans.seq_need_resp = 1;
+
+    $cast(trans_item, trans);
+    `uvm_send(trans_item);
+
+    get_response(req, trans_item.get_transaction_id);
+
+    if(!$cast(trans, req)) begin
+        `uvm_fatal(get_type_name(), "Req is not apb_xaction type or its extension");
+    end
+
+    if(resp != trans.resp) begin
+        `uvm_error(get_type_name(), $sformatf("apb_single_read(): The expected response is %0d, but the observed response is %0d", resp, trans.resp));
+    end
+
+    data=trans.data;
+endtask: apb_single_read
