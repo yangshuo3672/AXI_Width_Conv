@@ -1,3 +1,8 @@
+//分为三个clocking block/modport
+//Master：驱动addr、write、wdata（作为output），采样prdata、pready、pslverr（作为input）
+//Slave：驱动prdata、pready、pslverr（作为output）、采样master传来的信号（作为input）
+//monitor: 作monitor使用，只采样总线，不进行驱动，因此都是输出
+
 interface apb_interface(input bit PClk,
                         input bit rst_n); //modify by DTS2019032808854
 
@@ -52,7 +57,7 @@ interface apb_interface(input bit PClk,
         output PDomain ;
     endclocking
 
-
+//clock blocking
     clocking slave_cb @(posedge PClk);
         default input #(`APB_SETUP_TIME) output #(`APB_HOLD_TIME);
 
@@ -63,9 +68,9 @@ interface apb_interface(input bit PClk,
         input PAddr;
         input PSel;
         input PEnable;
-        input PPrt;
+        input PProt;
         input PWrite;
-        input PWDData;
+        input PWData;
         input PStrb;
         input PAuser;
         input PWuser;
@@ -112,5 +117,7 @@ interface apb_interface(input bit PClk,
     modport Master(clocking master_cb, input rst_n);
     modport Slave(clocking slave_cb, input rst_n);
     modport Monitor(clocking monitor_cb, input rst_n);
-
+//modport用来规定不同模块、类访问这个接口是，能看到哪些信号，以及方向是什么
+//使用的时候 apb_interface.Master my_mst_if  ,代表从Master角度使用接口，只能按master_cb的方向访问想关信号
+      
 endinterface
