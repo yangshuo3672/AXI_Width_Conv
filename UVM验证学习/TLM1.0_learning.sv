@@ -60,12 +60,27 @@
 2. TLM机制
     TLM机制不是一个具体的类，而是一个基于接口interface和端口port的通信规范，核心是将通信规范化。组件不需要操作数据或实例化并调用对方的方法，而是通过标准端口发出请求。
 端口连接在connect_phase中统一建立。
-    2.1 TLM三大核心端口：PORT,EXPORT,IMP
-        PORT:发起操作方。主动发起一个通信操作，比如put（发送数据）和get（获取数据）
-        EXPORT：中转站。本身不执行具体操作，只是将来自PORT的请求转发给真正的执行者，常用于层次化结构中，将底层组价的IMP端口向上暴露
-        IMP（Implementation）:最终执行方，实现了PORT发起操作的具体功能，例如一个put操作最终会调用IMP所在组件的put任务或函数
+    2.1 （1） TLM三大核心端口：PORT,EXPORT,IMP
+        PORT:发起操作方。主动发起一个通信操作，比如put（发送数据）和get（获取数据）。例如 uvm_blocking_put_port #(transaction) put_port;
+        EXPORT：中转站。本身不执行具体操作，只是将来自PORT的请求转发给真正的执行者，常用于层次化结构中，将底层组价的IMP端口向上暴露。例如：uvm_blocking_put_export #(transaction) put_export;
+        IMP（Implementation）:最终执行方，实现了PORT发起操作的具体功能，例如一个put操作最终会调用IMP所在组件的put任务或函数。例如：uvm_blocking_put_imp #(transaction, consumer) put_imp;
         连接关系：PORT->EXPORT->IMP 其中EXPORT是可选的
-      
+       
+        （2）操作原理
+       put(t)是发送操作，get(t)是获取操作，peek)是窥探操作。
+       Port主动调用put或者get方法，
+       put：数据从Port流向Imp
+       get：Imp从内部取出数据并返回给Port，数据从Imp流向Port，Imp内部数据被移除
+       peek：与get类似，但不会移除数据。只读取数据。不影响Imp内部存储*************************************
+
+      （3）blocking和nonblocking原理
+         （3.1）blocking：阻塞，调用会等待操作完成才返回。方法是task类型，消耗仿真时间，等待fifo有空间（put）或fifo有数据（get）时才返回
+              分类：blocking_put,blocking_get,blocking_peek
+          (3.2)nonblocking:非阻塞，立即返回，不等待操作完成。方法是function，不消耗时间，使用mailbox尝试操作，返回成功/失败状态
+              分类：nonblocking_put()/try_put()，nonblocking_get()/try_get()，nonblocking_get()/try_get()
+             返回值bit success = try_put(t),1表示返回成功。
+
+       
    2.2 定义通信方式
         
          uvm_blocking_put_port:      阻塞式发送，调用其put（task）任务发送一个事务，改事务会一直阻塞，知道接收方成功接收。
@@ -176,6 +191,19 @@
                      endtask
                    endclass 
             （2）第二步：在消费者（SB和Coverage Collector）定义Analysis IMP并实现write方法
+
+
+
+
+
+解释UVM中TLM通信原理中uvm_tlm_analysis_fifo的全部端口的原理，重点解释什么是port export imp put get peek blocking nonblocking，详细解释
+      3. TLM中的FIFO使用
+         3.1 FIFO特性
+             内部有fifo缓冲区存储数据；
+             有analysis_port广播端口，和多个producer（发起者）连接；
+             内部有get_port/peek_port，使consumer（消费者）获取数据
+         3.3 
+                  
                   
            
             
