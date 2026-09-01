@@ -33,6 +33,13 @@
 
 `define APB_MEM_WIDTH `APB_ADDR_WIDTH
 
+`define HISI_VIP_APB_QOS_PORT_WIDTH 4
+`define HISI_VIP_APB_GRPID_PORT_WIDTH 5
+`define HISI_VIP_APB_VMID_PORT_WIDTH 3
+`define HISI_VIP_APB_MPUBYPASS_PORT_WIDTH 1
+`define HISI_VIP_APB_SNOOP_PORT_WIDTH 4
+`define HISI_VIP_APB_DOMAIN_PORT_WIDTH 2
+
 `define APB_X_CHECK(signal_value,signal_name)
 if((signal_value !== 'z)&&(^signal_value === 1'bx))
   `uvm_error(get_type_name(),$sformatf("%0s is X state when valid is asserted",signal_name));
