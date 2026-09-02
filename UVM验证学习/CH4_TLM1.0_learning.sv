@@ -203,6 +203,10 @@
              有analysis_port广播端口，和多个producer（发起者）连接；
              内部有get_port/peek_port，使consumer（消费者）获取数据
          3.3 
+
+
+4. TLM机制要点
+   4.1 
                   
                   
            
