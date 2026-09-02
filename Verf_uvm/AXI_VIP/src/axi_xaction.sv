@@ -3,3 +3,8 @@
 foreach（m_nvNextRvalidDelay[index]）
   if((Dir==0)&&m_enXactionLength >= index+1)  //写并且len这个参数超过了delay   
     delay inside{0,10}????
+
+
+
+    class axi_xaction extends stb_rw_sequence_item
+      rand axi_dec::axi_length_enum m_enXcatLength;
