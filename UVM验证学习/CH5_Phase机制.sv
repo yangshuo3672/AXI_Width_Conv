@@ -44,6 +44,23 @@
 
     注意：跳转到前面的build_phase到start_of_sim_phase是不可行的，跳转run_phase也是不可行的。只能在12个run_time phase内跳转或者跳转到task phase后面的function phase（如final_phase）
 
-  4. 
+4.objection机制*****
+       phase.raise_objection(this);
+       //...
+       phase.drop_objection(this);
+   objection机制一般只适用于12个run-time的子phase中，由于run_phase与其他12个动态运行的phase是并行运行的，如果这12个phase有objection被提起，那么run_phase根本不需要raise_objection就可以自动执行。
+       UVM.page.150：
+        （1）如果mian_phase提起了raise，run_phase没有raise_objection，那么run phase自动执行
+       
+        （2）如果run_phase提起了objection，main_phase没有raise_objection，那么mian_phase不会执行，仿真时间完全由run_phase决定了。
+        原因：由于main_phase没有raise_objection，他会在0时刻全部消耗仿真时间的代码都被kill掉，测试只剩下run_phase在跑。
+       
+5.为什么不推荐main phase和run phase同时使用？
+   因为12个动态运行的phase和run_phase是并行关系，混合使用会造成时序竞争和objection管理混乱。
+   如果说run_phase提前结束，而另外的run-time phase运行依赖于run_phase实例化的组件，那么继续运行会报错。
+   推荐只使用12个run-time phase，不使用run_phase。
+   如果混合使用，可以main_phase用于virtual sequence的显示控制（使用raise_objection），而run_phase用于被动的，需要全称运行的组件，不raise_objection。
+       
+
 
   
