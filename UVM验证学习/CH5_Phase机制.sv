@@ -60,6 +60,11 @@
    如果说run_phase提前结束，而另外的run-time phase运行依赖于run_phase实例化的组件，那么继续运行会报错。
    推荐只使用12个run-time phase，不使用run_phase。
    如果混合使用，可以main_phase用于virtual sequence的显示控制（使用raise_objection），而run_phase用于被动的，需要全称运行的组件，不raise_objection。
+
+6. build_phase阶段出现ERROR会直接终止仿真
+7. build_phase执行是自上而下、为什么
+8. 
+      
        
 
 
