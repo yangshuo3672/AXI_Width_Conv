@@ -126,5 +126,26 @@ task my_monitor::run_phase(uvm_phase phase);
     end
 endtask
 
-
-
+6. $cast系统函数使用机制
+$cast是sv中的动态类型转换机制
+6.1 背景
+  （1）继承体系中有两种赋值方式，比如：
+   class base; endclass
+   class derived extends base; endclass  //derived是base的子类
+   base b;
+   derived d = new();
+   b = d;          // ✅ 向上转换（upcast）：子类句柄赋给父类句柄，永远安全，隐式完成。b指向一个derived对象
+   d = b;          // ❌ 向下转换（downcast）：编译错误！父类句柄不能直接赋给子类句柄。因为b指向的对象是base，也可能是另一个兄弟类，根本不是drived类型3
+  （2）并且，UVM的继承关系架构决定了大量的“基类句柄装派生对象”
+         比如clone()，传递类型是uvm_object，而实际上需要的类型是my_transaction
+         比如m_sequencer，返回传递的类型是uvm_sequencer_base，而实际需要的类型是my_virtual_sequencer
+       因此，对象在UVM基础设施里被打包成基类句柄，取回时必须用$cast还原成真实类型才能访问派生类的成员
+6.2应用示例
+task apb_monitor::main_task();
+    apb_xaction tr;
+    uvm_sequence_item base_tr;
+    if(!cast(tr,this.base_tr.clone()))begin
+        `uvm_error();
+    end
+    out_port.write(tr);
+endtask
