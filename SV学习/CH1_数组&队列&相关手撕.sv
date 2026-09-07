@@ -51,8 +51,25 @@
    性能：sv中队列作为input参数时，默认会深拷贝整个队列，如果元素多，开销巨大。ref只传地址，只有一个开销
    安全性：const ref保证函数内部绝不可能意外修改源队列，编译器会检查
    语义清晰：调用者看到ref就知道这个task会修改外部变量
+       
 2.队列内建方法
+       eg： int q[$]=`{1,2,3,4,5}; 从左到右位置依次是0 1 2 ... 4
+       （1）q.size(), 元素个数
+       （2）q.insert(i,val) ,在i位置插入值val
+        (3) q.delet(i)删除位置i的值，q.delete()清空队列
+       （4）q.put(i,val),等同于insert
+       （5）q.get(i),获取第i位置的值（不删除）
+        (6) q.push_front(val)头部插入；q.push_back(val)尾部插入
+       （7）q.pop_front,移除头部元素；q.pop_back,移除尾部元素
+       （8）q.find_index with(item==3),输出队列中值为3的元素全部匹配的索引
+       （9）q.find_first_index with(item>5),返第一个满足条件的索引；q.find_last_index with(item<8),返最后一个满足条件的索引
+       （10）q.find with(cond),返回所有匹配的元素；find_first with(cond)，第一个匹配的元素；find_last with(cond)，最后一个匹配的元素
+       （11）q.sort(),升序排序； q.rsort(),降序排序 ；q.shuffle(),随机打乱
+        (12) q.reverse() 反转队列
+       
+           
 
+       
 3.深拷贝和浅拷贝
      （1）浅拷贝：复制句柄(指针)，指向同一块内存；obj_b = obj_a 就是浅拷贝
         sv中默认行为全是浅拷贝，类句柄赋值都是浅拷贝；动态数组和队列在类内是句柄
