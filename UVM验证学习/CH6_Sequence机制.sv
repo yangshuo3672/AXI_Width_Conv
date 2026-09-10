@@ -173,4 +173,10 @@ sequence 可以被多个环境复用；
 
 8.random和postrandom  为了循环产生不同的数
 
+9. `uvm_do的操作
+创建（Create）：通过 uvm_create 或等效的工厂方法，实例化传入的 SEQ_OR_ITEM 对象。
+随机化（Randomize）：自动调用 SEQ_OR_ITEM.randomize() 方法，根据事务内部定义的约束随机化其字段。
+发送（Send/Start）：根据参数类型的不同，执行不同的发送流程：
+如果传入的是 transaction（事务）：宏会依次调用 start_item() 和 finish_item()，将事务发送给当前的 sequencer。
+如果传入的是 sequence（序列）：宏会调用该序列的 start() 方法，启动它
            
